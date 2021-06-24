@@ -8,6 +8,8 @@ Link: https://arcade.academy/index.html
 import arcade
 import random
 import PIL
+import numpy
+
 
 # Define basic sizes
 # No. rows and columns
@@ -100,9 +102,12 @@ def check_collision(board, shape, offset):
     for count_y, row in enumerate(shape):
         # for each cell in that row
         for count_x, cell in enumerate(row):
-            # if the cell and the board's (x,y) is not a 0, return True (as it must intersect)
-            if cell and board[count_y + off_y][count_x + off_x]:
-                print("COllision " + str(board))
+            # Try / except to stop IndexError for error control
+            try:
+                # if the cell and the board's (x,y) is not a 0, return True (as it must intersect)
+                if cell and board[count_y + off_y][count_x + off_x]:
+                    return True
+            except IndexError:
                 return True
     return False
 
@@ -125,6 +130,20 @@ def remove_row(board, row):
     """ Remove a row from the board, add a blank row on top. """
     del board[row]
     return [[0 for _ in range(COL_COUNT)]] + board
+
+
+def rotate_shape(x_old, y_old):
+    sa_x = 1
+    sb_x = 4 - 2
+    sa_y = 0
+    sb_y = 0
+
+    print(x_old, y_old)
+    x_new = sa_x + (y_old - sb_x)
+    y_new = sa_y - (x_old - sb_y)
+    print(x_new, y_new)
+
+    return (x_new, y_new)
 
 
 class Game(arcade.Window):
@@ -300,7 +319,9 @@ class Game(arcade.Window):
             self.move(-1)
         if key == arcade.key.RIGHT:
             self.move(1)
-
+        if key == arcade.key.R:
+            new_xy = rotate_shape(self.shape_x, self.shape_y)
+            self.shape_x, self.shape_y = new_xy
 
 def main():
     """ Main Method """
