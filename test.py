@@ -335,8 +335,7 @@ class Game(arcade.Window):
             Create a new sprite
         """
         # Drop shape down by 1
-        #self.shape_y += 1
-
+        self.shape_y += 1
 
         # Check if the shape collides with anything on the board
         if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):

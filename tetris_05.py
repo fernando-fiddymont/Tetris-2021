@@ -43,8 +43,9 @@ colors = [(0,0,0),
           ]
 
 # List containing the different tetrominoes - different numbers for colouring purposes
-shapes = [[[1, 1, 1],
-           [0, 1, 0]],
+# it is done so we know our center piece is always at for shape in shapes -> shape[1][2]
+shapes = [[[0, 1, 0],
+           [1, 1, 1]],
 
           [[0, 0, 2],
            [2, 2, 2]],
@@ -58,10 +59,11 @@ shapes = [[[1, 1, 1],
           [[5, 5, 0],
            [0, 5, 5]],
 
-          [[6, 6],
-           [6, 6]],
+          [[0, 6, 6],
+           [0, 6, 6]],
 
-          [[7, 7, 7, 7]]
+          [[0, 0, 0, 0],
+           [7, 7, 7, 7]]
           ]
 
 
@@ -131,19 +133,77 @@ def remove_row(board, row):
     del board[row]
     return [[0 for _ in range(COL_COUNT)]] + board
 
+# ROTATION CALCULATION FUNCTIONS
 
-def rotate_shape(x_old, y_old):
-    sa_x = 1
-    sb_x = 4 - 2
-    sa_y = 0
-    sb_y = 0
 
-    print(x_old, y_old)
-    x_new = sa_x + (y_old - sb_x)
-    y_new = sa_y - (x_old - sb_y)
-    print(x_new, y_new)
+def calculate_rotation_num(rotate_clockwise, rotation_num):
+    """
+    A simple loop between 0 - 3 that calculates a new rotation
+    number based on a boolean of clockwise
+    """
+    # calculate new rotation index
+    if rotate_clockwise:
+        new_rotation = rotation_num + 1
+    else:
+        new_rotation = rotation_num - 1
+    if new_rotation < 0:
+        new_rotation = 3
+    elif new_rotation > 3:
+        new_rotation = 0
 
-    return (x_new, y_new)
+    return new_rotation
+
+
+def get_tile_coordinates_global(tile_count_xy, shape_xy):
+    """
+    Returns a x,y of each tile's global location on the grid
+    """
+    # Unpack given variables
+    shape_x, shape_y = shape_xy
+    count_x, count_y = tile_count_xy
+    # Do maths to find each tile's x and y relative to the top right hand corner of the matrix
+    tile_pos_x = shape_x + count_x
+    tile_pos_y = (shape_y - 1) + count_y
+    return tile_pos_x, tile_pos_y
+
+
+def get_rotated_tile(tile_coordinates, center_tile_coordinates, clockwise):
+    """
+    Find the rotated coordinates of a tile relative to the top left hand corner
+    Takes center tile coordinates that it will rotate all other blocks around.
+    Works by finding the relative x, y postions or vectors to the center tile and then
+    them through a rotation matrix (based on which way we want to rotate) and then
+    putting them back in to their correct place relative the top LH corner.
+    """
+    tile_x, tile_y = tile_coordinates
+    center_tile_x, center_tile_y = center_tile_coordinates
+
+    # Find the relative position of a tile to the center tile (origin)
+    relative_position_x = tile_x - center_tile_x
+    relative_position_y = tile_y - center_tile_y
+
+    # Create rotation matrix depending on which way we flip
+    if clockwise:
+        rotation_matrix = [[0, 1],
+                           [-1, 0]]
+    else:
+        rotation_matrix = [[0, -1],
+                           [1, 0]]
+
+    # R x Vr = Vnew // Uses a rotation matrix to find the new x and y positions of our tiles
+    new_postion_x = (rotation_matrix[0][0] * relative_position_x) + (rotation_matrix[0][1] * relative_position_y)
+    new_postion_y = (rotation_matrix[1][0] * relative_position_x) + (rotation_matrix[0][0] * relative_position_y)
+
+    print("rotation_matrix: "+ "\n" + str(rotation_matrix[0]) + "\n" + str(rotation_matrix[1]))
+
+    # Put it back into it's correct place on the grid
+    new_postion_x += center_tile_x
+    new_postion_y += center_tile_y
+    print("new_postion_x: " + str(new_postion_x))
+    print("new_postion_y: " + str(new_postion_y))
+
+    new_position = new_postion_x, new_postion_y
+    return new_position
 
 
 class Game(arcade.Window):
@@ -166,6 +226,7 @@ class Game(arcade.Window):
         self.frame_count = 0
 
         self.level = 0
+        self.rotation = 0
 
     def setup(self):
         """ Set up the game variables. Call to re-start the game. """
@@ -243,7 +304,7 @@ class Game(arcade.Window):
             Create a new sprite
         """
         # Drop shape down by 1
-        self.shape_y += 1
+        #self.shape_y += 1
         # Check if the shape collides with anything on the board
         if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
             self.board = join_matrixes(self.board, self.shape, (self.shape_x, self.shape_y))
@@ -260,6 +321,44 @@ class Game(arcade.Window):
 
             self.update_board()
             self.new_shape()
+
+    def rotate_shape(self, clockwise, should_offset):
+        """
+        Rotate the shape and re-draw it
+        This is done by creating a new matrix, rotating each individual tile relative to a
+        center block, putting them back into the matrix and redrawing it on the board
+        """
+        # Create an empty matrix to load our rotated tiles into
+        new_shape_matrix = [[0, 0, 0, 0],
+                            [0, 0, 0, 0],
+                            [0, 0, 0, 0],
+                            [0, 0, 0, 0]]
+
+        # Remember current rotation
+        old_rotation = self.rotation
+        # find the new rotation - between 0 and 3
+        new_rotation = calculate_rotation_num(clockwise, self.rotation)
+
+        # The center tile always exists at shape[1][1]
+        center_tile_coordinates = get_tile_coordinates_global((1, 1), (self.shape_x, self.shape_y))
+        # Get shape type from center so we can re-color our new shape
+        shape_type = self.shape[1][1]
+
+        # Count_x, count_y is the xy coordinates in the matrix
+        # For each tile in the shape
+        for count_y, row in enumerate(self.shape):
+            for count_x, tile in enumerate(row):
+                # Filter out any 0's to get each tile
+                if tile:
+                    # Find the new x and y coordinates of each tile
+                    new_x, new_y = get_rotated_tile((count_x, count_y), (1, 1), clockwise)
+
+                    # Add newly rotated tile to our matrix as the shape type.
+                    new_shape_matrix[new_y][new_x] = shape_type
+        # Set the shape to the new matrix and update the board
+        self.shape = new_shape_matrix
+
+        self.update_board()
 
     def update_board(self):
         """
@@ -313,15 +412,18 @@ class Game(arcade.Window):
         """
         # Drop the shape down by 1 each key press
         if key == arcade.key.DOWN:
+            self.shape_y += 1
             self.drop()
         # Move left and right
         if key == arcade.key.LEFT:
             self.move(-1)
         if key == arcade.key.RIGHT:
             self.move(1)
-        if key == arcade.key.R:
-            new_xy = rotate_shape(self.shape_x, self.shape_y)
-            self.shape_x, self.shape_y = new_xy
+        if key == arcade.key.Z:
+            self.rotate_shape(False, True)
+        if key == arcade.key.X:
+            self.rotate_shape(True, True)
+
 
 def main():
     """ Main Method """
