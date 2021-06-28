@@ -80,11 +80,20 @@ for count_y, row in enumerate(shape):
 
 center = (1,1)
 
-
-
 shape_type = matrix[1][1]
 
-print(shape_type)
+
+test_index = 0
+conditions = test_index < 5
+
+while test_index < 5:
+    print("test")
+    test_index += 1
+
+
+
+
+
 
 
 
