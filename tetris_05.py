@@ -500,7 +500,7 @@ class Game(arcade.Window):
             self.move(-1)
         if key == arcade.key.RIGHT:
             self.move(1)
-
+        # TESTING
         if key == arcade.key.R:
             print("self.rotation: " + str(self.rotation))
             print("shape_x: " + str(self.shape_x))
