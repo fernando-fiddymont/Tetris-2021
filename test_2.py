@@ -1,4 +1,4 @@
-
+import arcade
 shape = [[0, 1, 0],
          [1, 1, 1]]
 
@@ -50,7 +50,6 @@ def get_tile_coordinates(tile_count_xy):
     return tile_pos_x, tile_pos_y
 
 
-
 for count_row, row in enumerate(shape):
     for count_tile, tile in enumerate(row):
         pass
@@ -87,16 +86,84 @@ test_index = 0
 conditions = test_index < 5
 
 while test_index < 5:
-    print("test")
     test_index += 1
 
 
+matrix = [[0, 0, 1, 0],
+          [0, 1, 1, 0],
+          [1, 1, 0, 0],
+          [1, 1, 0, 0]]
+
+def minus_xy_array(array_a, array_b):
+    """ Function to minus array B from array A (coordinates). Will return a [x, y] list"""
+    a_x_value, a_y_value = array_a[0], array_a[1]
+    b_x_value, b_y_value = array_b[0], array_b[1]
+
+    new_x_value = a_x_value - b_x_value
+    new_y_value = a_y_value - b_y_value
+
+    return new_x_value, new_y_value
+
+
+print(minus_xy_array((0, -1), (0, 0)))
 
 
 
 
+def offset(board, shape_matrix, old_rotation, new_rotation, clockwise):
+    """ Offset tings
+    ?
+    /"""
+    offset_val_1 = 0
+    offset_val_2 = 0  # vector 2int??
+    end_offset_val = 0
+    cur_type = shape_matrix[1][1]
+    JLSZT_OFFSET_DATA = [[[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+                         [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+                         [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+                         [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]]]
 
 
+    # Get the right offset data for each shape
+    if cur_type == 6:
+        cur_offset_data = O_OFFSET_DATA
+    elif cur_type == 7:
+        cur_offset_data = I_OFFSET_DATA
+    else:
+        cur_offset_data = JLSZT_OFFSET_DATA
 
+    move_possible = False
+    test_index = 0
 
+    # Make sure we only test the amount required based on shape type
+    if cur_type == 6:
+        conditions = test_index == 0
+    elif cur_type == 7:
+        conditions = test_index < 4
+    else:
+        conditions = test_index < 4
 
+    while conditions:
+        # Get the end offset
+        offset_val_1 = cur_offset_data[test_index][old_rotation]
+        offset_val_2 = cur_offset_data[test_index][new_rotation]
+
+        end_offset_val = minus_xy_array(offset_val_1, offset_val_2)
+        print("old rotation: " + str(old_rotation))
+        print("new rotation: " + str(new_rotation))
+        print("offset_val_1: " + str(offset_val_1))
+        print("offset_val_2: " + str(offset_val_2))
+        print("end_offset_val: " + str(end_offset_val) + "\n")
+
+        # see if the new offset collides
+        if not check_collision(board, shape_matrix, end_offset_val):
+            move_possible = True
+            return move_possible, end_offset_val
+            # Break the while loop
+        else:
+            test_index += 1
+
+    if move_possible:
+        pass
+    else:
+        return move_possible, (0, 0)

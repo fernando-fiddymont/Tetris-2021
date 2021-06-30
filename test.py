@@ -74,7 +74,6 @@ JLSZT_OFFSET_DATA = [[0, 0, 0, 0],
                      ]
 
 
-
 I_OFFSET_DATA = []
 
 O_OFFSET_DATA = []

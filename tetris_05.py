@@ -10,7 +10,6 @@ import random
 import PIL
 import numpy
 
-
 # Define basic sizes
 # No. rows and columns
 ROW_COUNT = 22
@@ -30,7 +29,7 @@ SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
 TITLE = "My Game | Tetris"
 
 # List of colors based on the 8 official Tetris colors - (R,B,G) format.
-colors = [(0,0,0),
+colors = [(0, 0, 0),
           (128, 0, 128),  # purple - T block
           (255, 127, 0),  # Orange - L block
           (0, 0, 255),  # blue - J block
@@ -38,7 +37,7 @@ colors = [(0,0,0),
           (255, 0, 0),  # red - Z block
           (255, 255, 0),  # Yellow - Square
           (0, 255, 255),  # light blue (cyan) - I block    #(127, 127, 127)# Grey - background
-          (255, 255, 255), # WHITE - TESTING
+          (255, 255, 255),  # WHITE - TESTING
           (0, 0, 10)  # black
           ]
 
@@ -66,18 +65,9 @@ shapes = [[[0, 1, 0],
            [7, 7, 7, 7]]
           ]
 
-JLSZT_OFFSET_DATA = [[[0, 0], [0, 0], [0, 0], [0, 0]],
-                     [[0, 0], [1, 0], [0, 0], [-1, 0]],
-                     [[0, 0], [1, -1], [0, 0], [-1, -1]],
-                     [[0, 0], [0, 0], [0, 0], [0, 2]],
-                     [[0, 0], [1, 2], [0, 0], [-1, 2]]
-                     ]
+O_OFFSET_DATA = [[[0, 0], [0, -1], [-1, -1], [-1, 0]]]
 
 
-
-I_OFFSET_DATA = []
-
-O_OFFSET_DATA = []
 
 
 def create_textures():
@@ -138,7 +128,8 @@ def join_matrixes(matrix_1, matrix_2, matrix_2_offset):
     offset_x, offset_y = matrix_2_offset
     for count_y, row in enumerate(matrix_2):
         for count_x, value in enumerate(row):
-            matrix_1[count_y + offset_y - 1][count_x + offset_x] += value
+            if value:
+                matrix_1[count_y + offset_y - 1][count_x + offset_x] += value
     return matrix_1
 
 
@@ -147,19 +138,24 @@ def remove_row(board, row):
     del board[row]
     return [[0 for _ in range(COL_COUNT)]] + board
 
+
 # ROTATION CALCULATION FUNCTIONS
 
 
-def calculate_rotation_num(rotate_clockwise, rotation_num):
+def calculate_rotation_num(rotate_anticlockwise, rotation_num):
     """
     A simple loop between 0 - 3 that calculates a new rotation
-    number based on a boolean of clockwise
+    number based on a boolean of anti-clockwise
     """
-    # calculate new rotation index
-    if rotate_clockwise:
-        new_rotation = rotation_num + 1
+
+    # Calculate new rotation index
+    new_rotation = rotation_num
+    if not rotate_anticlockwise:
+        new_rotation += 1
     else:
-        new_rotation = rotation_num - 1
+        new_rotation -= 1
+
+    # Do we need to loop?
     if new_rotation < 0:
         new_rotation = 3
     elif new_rotation > 3:
@@ -192,7 +188,7 @@ def get_rotated_tile(tile_coordinates, center_tile_coordinates, clockwise):
     tile_x, tile_y = tile_coordinates
     center_tile_x, center_tile_y = center_tile_coordinates
 
-    # Find the relative position of a tile to the center tile (origin)
+    # Find the relative position (vector) of a tile to the center tile (origin)
     relative_position_x = tile_x - center_tile_x
     relative_position_y = tile_y - center_tile_y
 
@@ -216,67 +212,12 @@ def get_rotated_tile(tile_coordinates, center_tile_coordinates, clockwise):
     return new_position
 
 
-def offset(board, shape_matrix, old_rotation, new_rotation):
-    """ Offset tings
-    ?
-    /"""
-    offset_val_1 = 0
-    offset_val_2 = 0  # vector 2int??
-    end_offset_val = 0
-    cur_offset_data = []
-    cur_type = shape_matrix[1][1]
-
-    # Get the right offset data for each shape
-    if cur_type == 6:
-        cur_offset_data = O_OFFSET_DATA
-    elif cur_type == 7:
-        cur_offset_data = I_OFFSET_DATA
-    else:
-        cur_offset_data = JLSZT_OFFSET_DATA
-
-    move_possible = False
-    conditions = 0
-    test_index = 0
-
-    # Make sure we only test the amount required based on shape type
-    if cur_type == 6:
-        conditions = test_index < 1
-    elif cur_type == 7:
-        conditions = test_index < 2
-    else:
-        conditions = test_index < 5
-
-    while conditions:
-        # Get the end offset
-        print(" test_index: " + str(test_index))
-        print(" old_rotation: " + str(old_rotation))
-
-        offset_val_1 = cur_offset_data[test_index][old_rotation]
-        offset_val_2 = cur_offset_data[test_index][new_rotation]
-        end_offset_val = minus_xy_array(offset_val_1, offset_val_2)
-        print(" offset_val_1: " + str(offset_val_1))
-        print(" offset_val_2: " + str(offset_val_2))
-
-
-        print("End offset: " + str(end_offset_val))
-
-        # see if the new offset collides
-        if not check_collision(board, shape_matrix, end_offset_val):
-            move_possible = True
-            # Break the while loop
-
-        print()
-        test_index += 1
-
-    if move_possible:
-        return move_possible, end_offset_val
-    else:
-        print("move is IMPOSSIBLE with " + str(end_offset_val))
-        return move_possible, (0, 0)
-
-
 def minus_xy_array(array_a, array_b):
-    """ Function to minus array B from array A (coordinates). Will return a [x, y] list"""
+    """
+    Function for array A - array B (coordinates).
+    Used mostly for offset calculations.
+    Will return a [x, y] list
+    """
     a_x_value, a_y_value = array_a[0], array_a[1]
     b_x_value, b_y_value = array_b[0], array_b[1]
 
@@ -286,11 +227,41 @@ def minus_xy_array(array_a, array_b):
     return new_x_value, new_y_value
 
 
+def locateLargest(matrix):
+    """ Finds the longest length row in matrix and returns it. """
+    largest_num = None
+    row = None
+    col = None
+    list = []
+
+    for count_y, row in enumerate(matrix):
+        potential_num = 0
+
+        for count_x, num in enumerate(row):
+            if num:
+                potential_num += 1
+        list.append(potential_num)
+    largest_num = max(list)
+    return largest_num
+
+
+def offset_o(old_rotation, new_rotation):
+    """
+    Function to work out the offset of the O block
+    based on old and new rotations. Returns an (x, y) offset.
+    """
+    pos_old = O_OFFSET_DATA[old_rotation]
+    pos_new = O_OFFSET_DATA[new_rotation]
+    offset = minus_xy_array(pos_old, pos_new)
+    return offset
+
+
 class Game(arcade.Window):
     """
     Main Application class for game
     Has multiple in-built functions from arcade library
     """
+
     def __init__(self, width, height, title):
         """ Initializer class. Code to be ran on launch """
         super().__init__(width, height, title)
@@ -329,6 +300,7 @@ class Game(arcade.Window):
                 self.board_sprite_list.append(sprite)
 
         self.level = 1
+        self.rotation = 0
 
         self.new_shape()
         self.update_board()
@@ -339,6 +311,7 @@ class Game(arcade.Window):
         # Work out the x value - take it from the middle of columns rounded to the left
         self.shape_x = int(COL_COUNT / 2 - len(self.shape[0]) + 1)
         self.shape_y = 0
+        self.rotation = 0
 
         # ADD COLLISON CHECKING FOR GAME OVER
 
@@ -351,7 +324,7 @@ class Game(arcade.Window):
         self.shape_x += offset_x
         self.shape_y += offset_y
 
-        #if check_collision(self.board, self.shape, )
+        # if check_collision(self.board, self.shape, )
 
         return False
 
@@ -397,7 +370,7 @@ class Game(arcade.Window):
             Create a new sprite
         """
         # Drop shape down by 1
-        #self.shape_y += 1
+        self.shape_y += 1
         # Check if the shape collides with anything on the board
         if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
             self.board = join_matrixes(self.board, self.shape, (self.shape_x, self.shape_y))
@@ -415,7 +388,7 @@ class Game(arcade.Window):
             self.update_board()
             self.new_shape()
 
-    def rotate_shape(self, clockwise, should_offset):
+    def rotate_shape(self, rotate_anticlockwise):
         """
         Rotate the shape and re-draw it
         This is done by creating a new matrix, rotating each individual tile relative to a
@@ -430,10 +403,7 @@ class Game(arcade.Window):
         # Remember current rotation
         old_rotation = self.rotation
         # find the new rotation - between 0 and 3
-        new_rotation = calculate_rotation_num(clockwise, self.rotation)
-
-        # The center tile always exists at shape[1][1]
-        center_tile_coordinates = get_tile_coordinates_global((1, 1), (self.shape_x, self.shape_y))
+        new_rotation = calculate_rotation_num(rotate_anticlockwise, self.rotation)
         # Get shape type from center so we can re-color our new shape
         shape_type = self.shape[1][1]
 
@@ -444,30 +414,23 @@ class Game(arcade.Window):
                 # Filter out any 0's to get each tile
                 if tile:
                     # Find the new x and y coordinates of each tile
-                    new_x, new_y = get_rotated_tile((count_x, count_y), (1, 1), clockwise)
+                    new_x, new_y = get_rotated_tile((count_x, count_y), (1, 1), rotate_anticlockwise)
                     # Add newly rotated tile to our matrix as the shape type.
                     new_shape_matrix[new_y][new_x] = shape_type
         # Set the shape to the new matrix and update the board
         self.shape = new_shape_matrix
+        self.rotation = new_rotation
 
-        # Should we rotate?
-        if should_offset:
-            # Call offset function
-            can_rotate, offset_xy = offset(self.board, new_shape_matrix, old_rotation, new_rotation)
+        # Prevent the O shape from wobbling
+        if shape_type == 6:
+            # Get an offset based on shapes old and new rotation positions
+            shape_x_offset, shape_y_offset = offset_o(old_rotation, self.rotation)
+            self.shape_x += shape_x_offset
+            self.shape_y += shape_y_offset
 
-            # Can we rotate?
-            if can_rotate:
-                offset_x, offset_y = offset_xy
-                self.shape_x += offset_x
-                self.shape_y += offset_y
-                self.rotation = new_rotation
-                print("working")
-
-            else:
-                # Rotate the shape the opposite way but don't offset
-                self.rotate_shape(not clockwise, False)
-
-                # if we cant, call self.rotate again with the opposite clockwise and false should_offset to put it back
+        # If a collision occurs - rotate shape back the opposite way.
+        if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
+            self.rotate_shape(not rotate_anticlockwise)
 
         self.update_board()
 
@@ -509,10 +472,15 @@ class Game(arcade.Window):
         # Set the new x value to current + amount to change
         new_x = self.shape_x + x_value
         # If it exceeds either boundary - set to boundary
-        if new_x < 0:
-            new_x = 0
-        if new_x > COL_COUNT - len(self.shape[0]):
-            new_x = COL_COUNT - len(self.shape[0])
+        length = locateLargest(self.shape)
+        print(self.shape_x)
+        print("edge: " + str(length - 1))
+
+        # print("new_x: "+ str(new_x))
+        # if new_x < 0:
+        #     new_x = 0
+        # if new_x > COL_COUNT - len(self.shape[0]):
+        #     new_x = COL_COUNT - len(self.shape[0])
         # If not colliding - change position
         if not check_collision(self.board, self.shape, (self.shape_x + x_value, self.shape_y)):
             self.shape_x = new_x
@@ -523,7 +491,9 @@ class Game(arcade.Window):
         """
         # Drop the shape down by 1 each key press
         if key == arcade.key.DOWN:
-            self.shape_y += 1
+            new_y = self.shape_y + 1
+            if not check_collision(self.board, self.shape, (self.shape_x, new_y)):
+                self.shape_y = new_y
             self.drop()
         # Move left and right
         if key == arcade.key.LEFT:
@@ -532,11 +502,14 @@ class Game(arcade.Window):
             self.move(1)
 
         if key == arcade.key.R:
-            print(self.rotation)
+            print("self.rotation: " + str(self.rotation))
+            print("shape_x: " + str(self.shape_x))
+            print("shape_y: " + str(self.shape_y) + "\n")
+
         if key == arcade.key.Z:
-            self.rotate_shape(True, True)
+            self.rotate_shape(True)
         if key == arcade.key.X:
-            self.rotate_shape(False, True)
+            self.rotate_shape(False)
 
 
 def main():
