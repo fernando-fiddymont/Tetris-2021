@@ -4,11 +4,20 @@ Python Tetris Game
 Sources:
 Created using the arcade library
 Link: https://arcade.academy/index.html
+Code Help:
+Link: https://arcade.academy/examples/tetris.html
+Pygame Tetris
+https://levelup.gitconnected.com/writing-tetris-in-python-2a16bddb5318
+SRS -
+How to Properly Rotate Tetris Pieces - Game Development Tutorial
+Link: https://www.youtube.com/watch?v=yIpk5TJ_uaI
+SRS wikis
+Link: https://harddrop.com/wiki/SRS
+Link: https://tetris.wiki/Super_Rotation_System
 """
 import arcade
 import random
 import PIL
-import numpy
 
 # Define basic sizes
 # No. rows and columns
@@ -65,9 +74,7 @@ shapes = [[[0, 1, 0],
            [7, 7, 7, 7]]
           ]
 
-O_OFFSET_DATA = [[[0, 0], [0, -1], [-1, -1], [-1, 0]]]
-
-
+O_OFFSET_DATA = [[0, 0], [0, 1], [-1, 1], [-1, 0]]
 
 
 def create_textures():
@@ -250,8 +257,11 @@ def offset_o(old_rotation, new_rotation):
     Function to work out the offset of the O block
     based on old and new rotations. Returns an (x, y) offset.
     """
+    print("old_rotation: " + str(old_rotation))
+    print("new_rotation: " + str(new_rotation))
     pos_old = O_OFFSET_DATA[old_rotation]
     pos_new = O_OFFSET_DATA[new_rotation]
+
     offset = minus_xy_array(pos_old, pos_new)
     return offset
 
@@ -307,26 +317,14 @@ class Game(arcade.Window):
 
     def new_shape(self):
         """ Randomly select new shape - create at top of screen - TO DO: add collision for game over soon"""
-        self.shape = random.choice(shapes)
+        #self.shape = random.choice(shapes)
+        self.shape = shapes[5]
         # Work out the x value - take it from the middle of columns rounded to the left
         self.shape_x = int(COL_COUNT / 2 - len(self.shape[0]) + 1)
         self.shape_y = 0
         self.rotation = 0
 
         # ADD COLLISON CHECKING FOR GAME OVER
-
-    def can_move_piece(self, end_offset_val):
-        """ Checks if we can move a piece into a given space - returns a boolean value"""
-        offset_x, offset_y = end_offset_val
-        old_shape_x = self.shape_x
-        old_shape_y = self.shape_y
-
-        self.shape_x += offset_x
-        self.shape_y += offset_y
-
-        # if check_collision(self.board, self.shape, )
-
-        return False
 
     # noinspection PyMethodMayBeStatic
     def draw_shapes(self, shape_matrix, offset_x, offset_y):
@@ -370,7 +368,7 @@ class Game(arcade.Window):
             Create a new sprite
         """
         # Drop shape down by 1
-        self.shape_y += 1
+        #self.shape_y += 1
         # Check if the shape collides with anything on the board
         if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
             self.board = join_matrixes(self.board, self.shape, (self.shape_x, self.shape_y))
@@ -425,8 +423,10 @@ class Game(arcade.Window):
         if shape_type == 6:
             # Get an offset based on shapes old and new rotation positions
             shape_x_offset, shape_y_offset = offset_o(old_rotation, self.rotation)
+            print(shape_x_offset, shape_y_offset)
             self.shape_x += shape_x_offset
             self.shape_y += shape_y_offset
+            print("YAYYYYYY")
 
         # If a collision occurs - rotate shape back the opposite way.
         if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
