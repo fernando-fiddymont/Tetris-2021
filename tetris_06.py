@@ -33,9 +33,18 @@ MARGIN = 5
 
 # Calculate the screen width and height from the no. rows and columns
 # and the width and height of each cell (accounting for margin displacement)
-SCREEN_WIDTH = (WIDTH + MARGIN) * COL_COUNT + MARGIN
+SCREEN_WIDTH = ((WIDTH + MARGIN) * COL_COUNT + MARGIN) + 200
 SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
 TITLE = "My Game | Tetris"
+
+# Text constants
+LEVEL_TEXT_XY = (SCREEN_WIDTH - 180, SCREEN_HEIGHT - 100)
+LEVEL_NUM_TEXT_XY = (SCREEN_WIDTH - 180, SCREEN_HEIGHT - 130)
+
+SCORE_TEXT_XY = (SCREEN_WIDTH - 180, SCREEN_HEIGHT - 200)
+SCORE_NUM_TEXT_XY = (SCREEN_WIDTH - 180, SCREEN_HEIGHT - 230)
+
+TITLE_FONT_SIZE = 25
 
 # List of colors based on the 8 official Tetris colors - (R,B,G) format.
 colors = [(0, 0, 0),
@@ -144,6 +153,33 @@ def remove_row(board, row):
     """ Remove a row from the board, add a blank row on top. """
     del board[row]
     return [[0 for _ in range(COL_COUNT)]] + board
+
+
+def check_level(level, score):
+    """
+    Checks current level and sees if we need to
+    increase level based on score
+    """
+    if level == 1:
+        if score > 99:
+            level = 2
+    elif level == 2:
+        if score > 299:
+            level = 3
+    elif level == 3:
+        if score > 499:
+            level = 4
+    elif level == 4:
+        if score > 799:
+            level = 5
+    elif level == 5:
+        if score > 799:
+            level = 6
+    elif level == 6:
+        if score > 2000:
+            level = 7
+
+    return level
 
 
 # ROTATION CALCULATION FUNCTIONS
@@ -286,7 +322,13 @@ class Game(arcade.Window):
 
         self.frame_count = 0
 
+        self.score_text = None
+        self.lvl_text = None
+        self.score_num_text = None
+        self.level_num_text = None
+
         self.level = 0
+        self.score = 0
         self.rotation = 0
 
     def setup(self):
@@ -310,15 +352,15 @@ class Game(arcade.Window):
                 self.board_sprite_list.append(sprite)
 
         self.level = 1
-        self.rotation = 0
+        self.score = 0
 
         self.new_shape()
         self.update_board()
 
     def new_shape(self):
         """ Randomly select new shape - create at top of screen - TO DO: add collision for game over soon"""
-        #self.shape = random.choice(shapes)
-        self.shape = shapes[5]
+        self.shape = random.choice(shapes)
+        #self.shape = shapes[5]
         # Work out the x value - take it from the middle of columns rounded to the left
         self.shape_x = int(COL_COUNT / 2 - len(self.shape[0]) + 1)
         self.shape_y = 0
@@ -356,6 +398,21 @@ class Game(arcade.Window):
         # Call draw() on all your sprite lists below
         self.board_sprite_list.draw()
         self.draw_shapes(self.shape, self.shape_x, self.shape_y)
+        arcade.draw_text("LEVEL:",
+                         LEVEL_TEXT_XY[0], LEVEL_TEXT_XY[1],
+                         (0, 0, 0), TITLE_FONT_SIZE , font_name="Kenney Future")
+
+        arcade.draw_text(str(self.level),
+                         LEVEL_NUM_TEXT_XY[0], LEVEL_NUM_TEXT_XY[1],
+                         (0, 0, 0), TITLE_FONT_SIZE , font_name="Kenney Future")
+
+        arcade.draw_text("SCORE:",
+                         SCORE_TEXT_XY[0], SCORE_TEXT_XY[1],
+                         (0, 0, 0), TITLE_FONT_SIZE, font_name="Kenney Future")
+
+        arcade.draw_text(str(self.score),
+                         SCORE_NUM_TEXT_XY[0], SCORE_NUM_TEXT_XY[1],
+                         (0, 0, 0), TITLE_FONT_SIZE, font_name="Raleway")
 
     def drop(self):
         """
@@ -368,7 +425,7 @@ class Game(arcade.Window):
             Create a new sprite
         """
         # Drop shape down by 1
-        #self.shape_y += 1
+        self.shape_y += 1
         # Check if the shape collides with anything on the board
         if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
             self.board = join_matrixes(self.board, self.shape, (self.shape_x, self.shape_y))
@@ -379,6 +436,8 @@ class Game(arcade.Window):
                     # if row doesnt have a 0 - delete it
                     if 0 not in row:
                         self.board = remove_row(self.board, row_num)
+                        self.score += int(200 / self.level)
+                        self.level = check_level(self.level, self.score)
                         break
                 else:
                     break
@@ -455,14 +514,24 @@ class Game(arcade.Window):
             if self.frame_count % 60 == 0:
                 self.drop()
         elif self.level == 2:
-            if self.frame_count % 30 == 0:
+            if self.frame_count % 45 == 0:
                 self.drop()
         elif self.level == 3:
-            if self.frame_count % 20 == 0:
+            if self.frame_count % 30 == 0:
                 self.drop()
         elif self.level == 4:
+            if self.frame_count % 20 == 0:
+                self.drop()
+        elif self.level == 5:
+            if self.frame_count % 15 == 0:
+                self.drop()
+        elif self.level == 6:
             if self.frame_count % 10 == 0:
                 self.drop()
+        elif self.level == 7:
+            if self.frame_count % 5 == 0:
+                self.drop()
+
 
     def move(self, x_value):
         """
