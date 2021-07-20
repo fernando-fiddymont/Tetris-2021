@@ -46,6 +46,11 @@ SCORE_NUM_TEXT_XY = (SCREEN_WIDTH - 180, SCREEN_HEIGHT - 230)
 
 TITLE_FONT_SIZE = 25
 
+# NEXT_SHAPE_X = (MARGIN + WIDTH) + MARGIN + WIDTH + SCREEN_WIDTH - 200 + WIDTH
+# NEXT_SHAPE_Y = SCREEN_HEIGHT - (MARGIN + HEIGHT) + MARGIN + HEIGHT // 2 - 300
+NEXT_SHAPE_X = 427
+NEXT_SHAPE_Y = 455
+
 # List of colors based on the 8 official Tetris colors - (R,B,G) format.
 colors = [(0, 0, 0),
           (128, 0, 128),  # purple - T block
@@ -102,12 +107,13 @@ def create_textures():
 texture_list = create_textures()
 
 
-def new_board():
+def new_board(row_count, col_count, is_next):
     """ Create a grid that is X cols by Y rows filled with 0's. """
     # Board has 0's equal to the num of columns and num of rows.
-    board = [[0 for _x in range(COL_COUNT)] for _y in range(ROW_COUNT)]
-    # Add 1's on the bottom for easier collision checking
-    board += [[1 for _x in range(COL_COUNT)]]
+    board = [[0 for _x in range(col_count)] for _y in range(row_count)]
+    if not is_next:
+        # Add 1's on the bottom for easier collision checking
+        board += [[1 for _x in range(col_count)]]
     # Returns a 2d list of 0's that is full of items col_count in length
     return board
 
@@ -273,8 +279,6 @@ def minus_xy_array(array_a, array_b):
 def locateLargest(matrix):
     """ Finds the longest length row in matrix and returns it. """
     largest_num = None
-    row = None
-    col = None
     list = []
 
     for count_y, row in enumerate(matrix):
@@ -293,8 +297,6 @@ def offset_o(old_rotation, new_rotation):
     Function to work out the offset of the O block
     based on old and new rotations. Returns an (x, y) offset.
     """
-    print("old_rotation: " + str(old_rotation))
-    print("new_rotation: " + str(new_rotation))
     pos_old = O_OFFSET_DATA[old_rotation]
     pos_new = O_OFFSET_DATA[new_rotation]
 
@@ -302,23 +304,68 @@ def offset_o(old_rotation, new_rotation):
     return offset
 
 
-class Game(arcade.Window):
+def next_board_create(next_board):
+    """Create the smaller grid for our next tile screen"""
+    next_board_sprite_list = arcade.SpriteList()
+    for row in range(len(next_board)):
+        for column in range(len(next_board[0])):
+            if not next_board[row][column]:
+                sprite = arcade.Sprite()
+                for texture in texture_list:
+                    sprite.append_texture(texture)
+                # Background colors
+                sprite.set_texture(0)
+                # Set center_x and center_y
+                sprite.center_x = (MARGIN + WIDTH) * column + MARGIN + WIDTH + SCREEN_WIDTH - 200
+                sprite.center_y = SCREEN_HEIGHT - (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2 - 300
+                next_board_sprite_list.append(sprite)
+
+    return next_board_sprite_list
+
+
+class GameOverView(arcade.View):
+    def __init__(self):
+        """ This is run once when we switch to this view """
+        super().__init__()
+
+        self.texture = arcade.load_texture("resources/game_over_view/IMG_1404.jpg")
+
+    def on_draw(self):
+        """ Draw this view """
+
+        arcade.start_render()
+        self.texture.draw_sized(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
+        SCREEN_WIDTH, SCREEN_HEIGHT)
+
+    def on_mouse_press(self, _x, _y, _button, _modifiers):
+        """ If the user presses the mouse button, re-start the game. """
+
+        game_view = GameView()
+        game_view.setup()
+        self.window.show_view(game_view)
+
+
+class GameView(arcade.View):
     """
     Main Application class for game
     Has multiple in-built functions from arcade library
     """
 
-    def __init__(self, width, height, title):
+    def __init__(self):
         """ Initializer class. Code to be ran on launch """
-        super().__init__(width, height, title)
+        super().__init__()
         arcade.set_background_color(arcade.color.DARK_BLUE_GRAY)
         # Put all sprite lists here = to "None"
         self.board = None
         self.board_sprite_list = None
 
+        self.next_board = None
+        self.next_board_sprite_list = None
+
         self.shape = None
         self.shape_x = 0
         self.shape_y = 0
+        self.next_shape = None
 
         self.frame_count = 0
 
@@ -326,6 +373,8 @@ class Game(arcade.Window):
         self.lvl_text = None
         self.score_num_text = None
         self.level_num_text = None
+
+        self.game_over = False
 
         self.level = 0
         self.score = 0
@@ -335,9 +384,9 @@ class Game(arcade.Window):
         """ Set up the game variables. Call to re-start the game. """
         # Create sprites and sprite lists here
         # Create a list containing the board (bunch of 0's with some 1's)
-        self.board = new_board()
+        self.board = new_board(ROW_COUNT, COL_COUNT, False)
 
-        # For each row, and each column in that row, create a sprite and append simple and positions
+        # For each row, and each column in that row, create a sprite and append textures and positions
         # Just a plain board of squares
         self.board_sprite_list = arcade.SpriteList()
         for row in range(len(self.board)):
@@ -351,22 +400,30 @@ class Game(arcade.Window):
                 sprite.center_y = SCREEN_HEIGHT - (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
                 self.board_sprite_list.append(sprite)
 
+        # Create our next board
+        self.next_board = new_board(4, 4, True)
+        self.next_board_sprite_list = next_board_create(self.next_board)
+
         self.level = 1
         self.score = 0
 
+        self.next_shape = shapes[random.randint(0, 6)]
         self.new_shape()
         self.update_board()
 
     def new_shape(self):
         """ Randomly select new shape - create at top of screen - TO DO: add collision for game over soon"""
-        self.shape = random.choice(shapes)
-        #self.shape = shapes[5]
+        self.shape = self.next_shape
+        self.next_shape = random.choice(shapes)
+
         # Work out the x value - take it from the middle of columns rounded to the left
         self.shape_x = int(COL_COUNT / 2 - len(self.shape[0]) + 1)
         self.shape_y = 0
         self.rotation = 0
 
         # ADD COLLISON CHECKING FOR GAME OVER
+        if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
+            self.game_over = True
 
     # noinspection PyMethodMayBeStatic
     def draw_shapes(self, shape_matrix, offset_x, offset_y):
@@ -397,6 +454,7 @@ class Game(arcade.Window):
         arcade.start_render()
         # Call draw() on all your sprite lists below
         self.board_sprite_list.draw()
+        self.next_board_sprite_list.draw()
         self.draw_shapes(self.shape, self.shape_x, self.shape_y)
         arcade.draw_text("LEVEL:",
                          LEVEL_TEXT_XY[0], LEVEL_TEXT_XY[1],
@@ -414,6 +472,9 @@ class Game(arcade.Window):
                          SCORE_NUM_TEXT_XY[0], SCORE_NUM_TEXT_XY[1],
                          (0, 0, 0), TITLE_FONT_SIZE, font_name="Raleway")
 
+        #self.draw_shapes(self.next_shape, NEXT_SHAPE_X, NEXT_SHAPE_Y)
+
+
     def drop(self):
         """
         Drop the tetromino down one space.
@@ -424,26 +485,27 @@ class Game(arcade.Window):
             Update sprite list with new shape
             Create a new sprite
         """
-        # Drop shape down by 1
-        self.shape_y += 1
-        # Check if the shape collides with anything on the board
-        if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
-            self.board = join_matrixes(self.board, self.shape, (self.shape_x, self.shape_y))
-            # Loop to check for line clearing
-            while True:
-                # self.board[:-1] makes sure our bottom row doesnt get deleted (checks every row except the last)
-                for row_num, row in enumerate(self.board[:-1]):
-                    # if row doesnt have a 0 - delete it
-                    if 0 not in row:
-                        self.board = remove_row(self.board, row_num)
-                        self.score += int(200 / self.level)
-                        self.level = check_level(self.level, self.score)
+        if not self.game_over:
+            # Drop shape down by 1
+            self.shape_y += 1
+            # Check if the shape collides with anything on the board
+            if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
+                self.board = join_matrixes(self.board, self.shape, (self.shape_x, self.shape_y))
+                # Loop to check for line clearing
+                while True:
+                    # self.board[:-1] makes sure our bottom row doesnt get deleted (checks every row except the last)
+                    for row_num, row in enumerate(self.board[:-1]):
+                        # if row doesnt have a 0 - delete it
+                        if 0 not in row:
+                            self.board = remove_row(self.board, row_num)
+                            self.score += int(200 / self.level)
+                            self.level = check_level(self.level, self.score)
+                            break
+                    else:
                         break
-                else:
-                    break
 
-            self.update_board()
-            self.new_shape()
+                self.update_board()
+                self.new_shape()
 
     def rotate_shape(self, rotate_anticlockwise):
         """
@@ -451,53 +513,54 @@ class Game(arcade.Window):
         This is done by creating a new matrix, rotating each individual tile relative to a
         center block, putting them back into the matrix and redrawing it on the board
         """
-        # Create an empty matrix to load our rotated tiles into
-        new_shape_matrix = [[0, 0, 0, 0],
-                            [0, 0, 0, 0],
-                            [0, 0, 0, 0],
-                            [0, 0, 0, 0]]
+        if not self.game_over:
 
-        # Remember current rotation
-        old_rotation = self.rotation
-        # find the new rotation - between 0 and 3
-        new_rotation = calculate_rotation_num(rotate_anticlockwise, self.rotation)
-        # Get shape type from center so we can re-color our new shape
-        shape_type = self.shape[1][1]
+            # Create an empty matrix to load our rotated tiles into
+            new_shape_matrix = [[0, 0, 0, 0],
+                                [0, 0, 0, 0],
+                                [0, 0, 0, 0],
+                                [0, 0, 0, 0]]
 
-        # Count_x, count_y is the xy coordinates in the matrix
-        # For each tile in the shape
-        for count_y, row in enumerate(self.shape):
-            for count_x, tile in enumerate(row):
-                # Filter out any 0's to get each tile
-                if tile:
-                    # Find the new x and y coordinates of each tile
-                    new_x, new_y = get_rotated_tile((count_x, count_y), (1, 1), rotate_anticlockwise)
-                    # Add newly rotated tile to our matrix as the shape type.
-                    new_shape_matrix[new_y][new_x] = shape_type
-        # Set the shape to the new matrix and update the board
-        self.shape = new_shape_matrix
-        self.rotation = new_rotation
+            # Remember current rotation
+            old_rotation = self.rotation
+            # find the new rotation - between 0 and 3
+            new_rotation = calculate_rotation_num(rotate_anticlockwise, self.rotation)
+            # Get shape type from center so we can re-color our new shape
+            shape_type = self.shape[1][1]
 
-        # Prevent the O shape from wobbling
-        if shape_type == 6:
-            # Get an offset based on shapes old and new rotation positions
-            shape_x_offset, shape_y_offset = offset_o(old_rotation, self.rotation)
-            print(shape_x_offset, shape_y_offset)
-            self.shape_x += shape_x_offset
-            self.shape_y += shape_y_offset
+            # Count_x, count_y is the xy coordinates in the matrix
+            # For each tile in the shape
+            for count_y, row in enumerate(self.shape):
+                for count_x, tile in enumerate(row):
+                    # Filter out any 0's to get each tile
+                    if tile:
+                        # Find the new x and y coordinates of each tile
+                        new_x, new_y = get_rotated_tile((count_x, count_y), (1, 1), rotate_anticlockwise)
+                        # Add newly rotated tile to our matrix as the shape type.
+                        new_shape_matrix[new_y][new_x] = shape_type
+            # Set the shape to the new matrix and update the board
+            self.shape = new_shape_matrix
+            self.rotation = new_rotation
 
-        # Check we didn't rotate off the board
-        for count_y, y in enumerate(self.shape):
-            for count_x, x in enumerate(y):
-                if x is not 0:
-                    if get_tile_coordinates_global((count_x, count_y), (self.shape_x, self.shape_y))[0] < 0:
-                        self.shape_x = self.shape_x + 1
+            # Prevent the O shape from wobbling
+            if shape_type == 6:
+                # Get an offset based on shapes old and new rotation positions
+                shape_x_offset, shape_y_offset = offset_o(old_rotation, self.rotation)
+                self.shape_x += shape_x_offset
+                self.shape_y += shape_y_offset
 
-        # If a collision occurs - rotate shape back the opposite way.
-        if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
-            self.rotate_shape(not rotate_anticlockwise)
+            # Check we didn't rotate off the board
+            for count_y, y in enumerate(self.shape):
+                for count_x, x in enumerate(y):
+                    if x != 0:
+                        if get_tile_coordinates_global((count_x, count_y), (self.shape_x, self.shape_y))[0] < 0:
+                            self.shape_x = self.shape_x + 1
 
-        self.update_board()
+            # If a collision occurs - rotate shape back the opposite way.
+            if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
+                self.rotate_shape(not rotate_anticlockwise)
+
+            self.update_board()
 
     def update_board(self):
         """
@@ -508,6 +571,12 @@ class Game(arcade.Window):
                 v = self.board[row][column]  # v = the number at each box location eg 0 or 1
                 i = row * COL_COUNT + column  # i = position of each box within the sprite list
                 self.board_sprite_list[i].set_texture(v)
+
+        for row in range(len(self.next_board)):
+            for column in range(len(self.next_board[0])):
+                v = self.next_board[row][column]  # v = the number at each box location eg 0 or 1
+                i = row * 3 + column  # i = position of each box within the sprite list
+                self.next_board_sprite_list[i].set_texture(v)
 
     def on_update(self, delta_time):
         """
@@ -539,27 +608,36 @@ class Game(arcade.Window):
             if self.frame_count % 5 == 0:
                 self.drop()
 
+        if self.game_over:
+            view = GameOverView()
+
+            self.window.show_view(view)
+
     def move(self, x_value):
         """
         :param x_value: delta x - the amount to move the shape across by
         :return: changes self.shape.x to the new_x value
         """
-        # Set the new x value to current + amount to change
-        new_x = self.shape_x + x_value
-        # If it exceeds either boundary - set to boundary
-        length = locateLargest(self.shape)
+        if not self.game_over:
+            # Set the new x value to current + amount to change
+            new_x = self.shape_x + x_value
+            # If it exceeds either boundary - set to boundary
+            length = locateLargest(self.shape)
 
-        for count_y, y in enumerate(self.shape):
-            for count_x, x in enumerate(y):
-                if x is not 0:
-                    if get_tile_coordinates_global((count_x, count_y), (new_x, self.shape_y))[0] < 0:
-                        new_x = self.shape_x
+            for count_y, y in enumerate(self.shape):
+                for count_x, x in enumerate(y):
+                    if x != 0:
+                        if get_tile_coordinates_global((count_x, count_y), (new_x, self.shape_y))[0] < 0:
+                            new_x = self.shape_x
 
-        # if new_x > COL_COUNT - len(self.shape[0]):
-        #     new_x = COL_COUNT - len(self.shape[0])
-        # If not colliding - change position
-        if not check_collision(self.board, self.shape, (self.shape_x + x_value, self.shape_y)):
-            self.shape_x = new_x
+            # if new_x > COL_COUNT - len(self.shape[0]):
+            #     new_x = COL_COUNT - len(self.shape[0])
+            # If not colliding - change position
+            if not check_collision(self.board, self.shape, (self.shape_x + x_value, self.shape_y)):
+                self.shape_x = new_x
+
+    def on_mouse_press(self, x: float, y: float, button: int, modifiers: int):
+        print(x, y)
 
     def on_key_press(self, key, key_modifiers):
         """
@@ -590,9 +668,12 @@ class Game(arcade.Window):
 
 def main():
     """ Main Method """
-    game = Game(SCREEN_WIDTH, SCREEN_HEIGHT, TITLE)
-    game.setup()
+    window = arcade.Window(SCREEN_WIDTH, SCREEN_HEIGHT, TITLE)
+    start_view = GameView()
+    window.show_view(start_view)
+    start_view.setup()
     arcade.run()
+
 
 
 if __name__ == "__main__":
