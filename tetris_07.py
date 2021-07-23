@@ -323,6 +323,39 @@ def next_board_create(next_board):
     return next_board_sprite_list
 
 
+class MenuView(arcade.View):
+    def __init__(self):
+        """ This is run once when we switch to this view """
+        super().__init__()
+        self.mute = False
+        self.texture = arcade.load_texture("resources/game_over_view/IMG_1404.jpg")
+
+    def on_draw(self):
+        """ Draw this view """
+
+        arcade.start_render()
+        self.texture.draw_sized(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
+        SCREEN_WIDTH, SCREEN_HEIGHT)
+
+    def on_mouse_press(self, _x, _y, _button, _modifiers):
+        """ If the user presses the mouse button, re-start the game. """
+
+        game_view = GameView()
+        game_view.mute = self.mute
+        game_view.setup()
+        self.window.show_view(game_view)
+
+    def setup(self):
+        pass
+
+    def on_key_press(self, symbol: int, modifiers: int):
+        if symbol == arcade.key.X:
+            if not self.mute:
+                self.mute = True
+            else:
+                self.mute = False
+
+
 class GameOverView(arcade.View):
     def __init__(self):
         """ This is run once when we switch to this view """
@@ -376,6 +409,8 @@ class GameView(arcade.View):
 
         self.game_over = False
 
+        self.mute = False
+
         self.level = 0
         self.score = 0
         self.rotation = 0
@@ -403,6 +438,13 @@ class GameView(arcade.View):
         # Create our next board
         self.next_board = new_board(4, 4, True)
         self.next_board_sprite_list = next_board_create(self.next_board)
+
+        # Play music
+        #code to play music
+
+        if self.mute:
+            # vol = 0
+            pass
 
         self.level = 1
         self.score = 0
@@ -664,12 +706,24 @@ class GameView(arcade.View):
             self.rotate_shape(True)
         if key == arcade.key.X:
             self.rotate_shape(False)
+        if key == arcade.key.M:
+            if not self.mute:
+                # if self.play_music previously:
+                    # SHUFFLE MUSIC
+                    # self.play_music = true:
+                #else:
+                # music vol = 100
+                pass
+            else:
+                # Music vol = 0
+                # has played music = True
+                pass
 
 
 def main():
     """ Main Method """
     window = arcade.Window(SCREEN_WIDTH, SCREEN_HEIGHT, TITLE)
-    start_view = GameView()
+    start_view = MenuView()
     window.show_view(start_view)
     start_view.setup()
     arcade.run()
