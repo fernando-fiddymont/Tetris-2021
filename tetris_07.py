@@ -18,6 +18,7 @@ Link: https://tetris.wiki/Super_Rotation_System
 import arcade
 import random
 import PIL
+import time
 
 # Define basic sizes
 # No. rows and columns
@@ -51,8 +52,13 @@ TITLE_FONT_SIZE = 25
 NEXT_SHAPE_X = 427
 NEXT_SHAPE_Y = 455
 
+MUSIC_LIST = ["resources/my_sounds/background_mixes/ES_Candy - Caponium.mp3",
+              "resources/my_sounds/background_mixes/ES_Pixel - Josef Falkenskold.mp3",
+              "resources/my_sounds/background_mixes/ES_High Score - Eight Bits.mp3",
+              "resources/my_sounds/background_mixes/Tetris 99 - Main Theme.mp3"]
+
 # List of colors based on the 8 official Tetris colors - (R,B,G) format.
-colors = [(0, 0, 0),
+COLORS = [(0, 0, 0),
           (128, 0, 128),  # purple - T block
           (255, 127, 0),  # Orange - L block
           (0, 0, 255),  # blue - J block
@@ -66,7 +72,7 @@ colors = [(0, 0, 0),
 
 # List containing the different tetrominoes - different numbers for colouring purposes
 # it is done so we know our center piece is always at for shape in shapes -> shape[1][2]
-shapes = [[[0, 1, 0],
+SHAPES = [[[0, 1, 0],
            [1, 1, 1]],
 
           [[0, 0, 2],
@@ -96,7 +102,7 @@ def create_textures():
     new_textures = []
     # loop through the color list creating a image the size of our pixel for each color
     # Uses this image to create an arcade texture and add it to the list
-    for color in colors:
+    for color in COLORS:
         # Create a box
         # noinspection PyUnresolvedReferences
         image = PIL.Image.new('RGB', (WIDTH, HEIGHT), color)
@@ -362,6 +368,7 @@ class GameOverView(arcade.View):
         super().__init__()
 
         self.texture = arcade.load_texture("resources/game_over_view/IMG_1404.jpg")
+        self.mute = bool
 
     def on_draw(self):
         """ Draw this view """
@@ -374,6 +381,7 @@ class GameOverView(arcade.View):
         """ If the user presses the mouse button, re-start the game. """
 
         game_view = GameView()
+        game_view.mute = self.mute
         game_view.setup()
         self.window.show_view(game_view)
 
@@ -409,7 +417,13 @@ class GameView(arcade.View):
 
         self.game_over = False
 
-        self.mute = False
+        # Variables used to manage our music.
+        # -- from https://api.arcade.academy/en/latest/examples/background_music.html#background-music
+        self.current_song_index = 0
+        self.current_player = None
+        self.music = None
+        self.mute = bool
+        self.volume = 0.25
 
         self.level = 0
         self.score = 0
@@ -440,23 +454,25 @@ class GameView(arcade.View):
         self.next_board_sprite_list = next_board_create(self.next_board)
 
         # Play music
-        #code to play music
+        # Array index of what to play
+        self.current_song_index = random.randint(0, len(MUSIC_LIST)-1)
+        # Play the song
+        self.play_song()
 
         if self.mute:
-            # vol = 0
-            pass
+            self.volume = 0
 
         self.level = 1
         self.score = 0
 
-        self.next_shape = shapes[random.randint(0, 6)]
+        self.next_shape = SHAPES[random.randint(0, 6)]
         self.new_shape()
         self.update_board()
 
     def new_shape(self):
         """ Randomly select new shape - create at top of screen - TO DO: add collision for game over soon"""
         self.shape = self.next_shape
-        self.next_shape = random.choice(shapes)
+        self.next_shape = random.choice(SHAPES)
 
         # Work out the x value - take it from the middle of columns rounded to the left
         self.shape_x = int(COL_COUNT / 2 - len(self.shape[0]) + 1)
@@ -480,7 +496,7 @@ class GameView(arcade.View):
                 # Figure out what color to draw the box
                 if shape_matrix[row][column]:
                     # Gets the number of a place in the matrix (eg 1) and selects the corresponding color
-                    color = colors[shape_matrix[row][column]]
+                    color = COLORS[shape_matrix[row][column]]
 
                     # Do the math to figure out where the box is
                     x = (MARGIN + WIDTH) * (column + offset_x) + MARGIN + WIDTH // 2
@@ -515,7 +531,6 @@ class GameView(arcade.View):
                          (0, 0, 0), TITLE_FONT_SIZE, font_name="Raleway")
 
         #self.draw_shapes(self.next_shape, NEXT_SHAPE_X, NEXT_SHAPE_Y)
-
 
     def drop(self):
         """
@@ -652,7 +667,8 @@ class GameView(arcade.View):
 
         if self.game_over:
             view = GameOverView()
-
+            view.mute = self.mute
+            self.music.stop()
             self.window.show_view(view)
 
     def move(self, x_value):
@@ -707,17 +723,32 @@ class GameView(arcade.View):
         if key == arcade.key.X:
             self.rotate_shape(False)
         if key == arcade.key.M:
+            # Mute stuff
             if not self.mute:
-                # if self.play_music previously:
-                    # SHUFFLE MUSIC
-                    # self.play_music = true:
-                #else:
-                # music vol = 100
-                pass
+                self.mute = True
+                self.music.stop()
             else:
-                # Music vol = 0
-                # has played music = True
-                pass
+                self.mute = False
+                self.current_song_index = random.randint(0, len(MUSIC_LIST) - 1)
+                self.play_song()
+
+    def advance_song(self):
+        """ Advance our pointer to the next song. This does NOT start the song. """
+        self.current_song_index += 1
+        if self.current_song_index >= len(MUSIC_LIST):
+            self.current_song_index = 0
+
+    def play_song(self):
+        """ Play the song. """
+        # Stop what is currently playing.
+        if self.music:
+            self.music.stop()
+        # Play the next song
+        print(f"Playing {MUSIC_LIST[self.current_song_index]}")
+        self.music = arcade.Sound(MUSIC_LIST[self.current_song_index], streaming=True)
+        self.current_player = self.music.play(self.volume)
+        # Quick delay to prevent accidental skipping
+        time.sleep(0.03)
 
 
 def main():
@@ -727,7 +758,6 @@ def main():
     window.show_view(start_view)
     start_view.setup()
     arcade.run()
-
 
 
 if __name__ == "__main__":
