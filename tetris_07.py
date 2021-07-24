@@ -333,33 +333,115 @@ class MenuView(arcade.View):
     def __init__(self):
         """ This is run once when we switch to this view """
         super().__init__()
+
         self.mute = False
-        self.texture = arcade.load_texture("resources/game_over_view/IMG_1404.jpg")
+        self.dark_mode = True
+
+        self.start_button_texture = "resources/menu_view/buttons/start_button_1.png"
+        self.dark_button_texture = "resources/menu_view/buttons/dark_button_1.png"
+        self.mute_button_texture = "resources/menu_view/buttons/mute_button_1.png"
+
+        self.start_button = None
+        self.button = None
+        self.button_sprites = None
+
+        self.color_button_indicator = None
+        self.mute_button_indicator = None
+        self.indicator_sprites = None
+
+        self.color_green = None
+        self.color_dark_green = None
+
+    def setup(self):
+        """ Set up function"""
+        # pre defined colors for status indicators
+        self.color_green = 24, 255, 0
+        self.color_dark_green = 255, 0, 32
+
+        self.button_sprites = arcade.SpriteList()
+        self.indicator_sprites = arcade.SpriteList()
+
+        # Start button
+        self.start_button = arcade.Sprite(self.start_button_texture, 0.5)
+        self.start_button.center_x = SCREEN_WIDTH / 2
+        self.start_button.center_y = SCREEN_HEIGHT / 2
+        self.start_button.properties = "start_button"
+        self.button_sprites.append(self.start_button)
+
+        # Light or dark color mode button
+        self.button = arcade.Sprite(self.dark_button_texture, 0.5)
+        self.button.center_x = SCREEN_WIDTH / 2
+        self.button.center_y = SCREEN_HEIGHT / 2 - 100
+        self.button.properties = "color_button"
+        self.button_sprites.append(self.button)
+
+        # Mute button
+        self.button = arcade.Sprite(self.mute_button_texture, 0.5)
+        self.button.center_x = SCREEN_WIDTH / 2
+        self.button.center_y = SCREEN_HEIGHT / 2 - 170
+        self.button.properties = "mute_button"
+        self.button_sprites.append(self.button)
+
+        # indicators
+        self.color_button_indicator = arcade.SpriteSolidColor(25, 62, self.color_green)
+        self.color_button_indicator.center_x = SCREEN_WIDTH / 2 + 147
+        self.color_button_indicator.center_y = SCREEN_HEIGHT / 2 - 100
+        self.color_button_indicator.properties = "color_indicator"
+        self.indicator_sprites.append(self.color_button_indicator)
+
+        self.mute_button_indicator = arcade.SpriteSolidColor(25, 61, self.color_green)
+        self.mute_button_indicator.center_x = SCREEN_WIDTH / 2 + 147
+        self.mute_button_indicator.center_y = SCREEN_HEIGHT / 2 - 170
+        self.mute_button_indicator.properties = "mute_indicator"
+        self.indicator_sprites.append(self.mute_button_indicator)
 
     def on_draw(self):
         """ Draw this view """
-
         arcade.start_render()
-        self.texture.draw_sized(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-        SCREEN_WIDTH, SCREEN_HEIGHT)
+        # self.texture.draw_sized(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
+        #                         SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.button_sprites.draw()
+
+        # Check if dark mode or mute is enabled, then draw indicator box
+        if self.dark_mode:
+            self.indicator_sprites[0].draw()
+        if self.mute:
+            self.indicator_sprites[1].draw()
+
+    def on_update(self, delta_time: float):
+        """ Called every frame """
+        self.button_sprites.update()
+        self.indicator_sprites.update()
 
     def on_mouse_press(self, _x, _y, _button, _modifiers):
         """ If the user presses the mouse button, re-start the game. """
+        # Track if the user has pressed these buttons
+        mute_button = False
+        color_button = False
+        # Get all sprites near by
+        hit_list = arcade.get_sprites_at_point((_x, _y), self.button_sprites)
 
-        game_view = GameView()
-        game_view.mute = self.mute
-        game_view.setup()
-        self.window.show_view(game_view)
+        # if there were any sprites near by then check which one
+        for sprite in hit_list:
+            # Color Button
+            if sprite.properties == "color_button":
+                if _button == arcade.MOUSE_BUTTON_LEFT:
+                    self.dark_mode = not self.dark_mode
+                    color_button = True
 
-    def setup(self):
-        pass
+            # Mute Button
+            elif sprite.properties == "mute_button":
+                if _button == arcade.MOUSE_BUTTON_LEFT:
+                    self.mute = not self.mute
+                    mute_button = True
 
-    def on_key_press(self, symbol: int, modifiers: int):
-        if symbol == arcade.key.X:
-            if not self.mute:
-                self.mute = True
-            else:
-                self.mute = False
+            # Start Button
+            elif sprite.properties == "start_button":
+                game_view = GameView()
+                game_view.mute = self.mute
+                game_view.dark_mode = self.dark_mode
+                game_view.setup()
+                self.window.show_view(game_view)
 
 
 class GameOverView(arcade.View):
@@ -375,7 +457,7 @@ class GameOverView(arcade.View):
 
         arcade.start_render()
         self.texture.draw_sized(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-        SCREEN_WIDTH, SCREEN_HEIGHT)
+                                SCREEN_WIDTH, SCREEN_HEIGHT)
 
     def on_mouse_press(self, _x, _y, _button, _modifiers):
         """ If the user presses the mouse button, re-start the game. """
@@ -422,8 +504,10 @@ class GameView(arcade.View):
         self.current_song_index = 0
         self.current_player = None
         self.music = None
-        self.mute = bool
         self.volume = 0.25
+        self.mute = bool
+
+        self.dark_mode = bool
 
         self.level = 0
         self.score = 0
@@ -438,6 +522,7 @@ class GameView(arcade.View):
         # For each row, and each column in that row, create a sprite and append textures and positions
         # Just a plain board of squares
         self.board_sprite_list = arcade.SpriteList()
+
         for row in range(len(self.board)):
             for column in range(len(self.board[0])):
                 sprite = arcade.Sprite()
@@ -455,12 +540,17 @@ class GameView(arcade.View):
 
         # Play music
         # Array index of what to play
-        self.current_song_index = random.randint(0, len(MUSIC_LIST)-1)
+        self.current_song_index = random.randint(0, len(MUSIC_LIST) - 1)
+        if self.mute:
+            self.volume = 0
         # Play the song
         self.play_song()
 
-        if self.mute:
-            self.volume = 0
+
+
+        print("mute" + str(self.mute))
+        print("darkmode" + str(self.dark_mode))
+
 
         self.level = 1
         self.score = 0
@@ -516,11 +606,11 @@ class GameView(arcade.View):
         self.draw_shapes(self.shape, self.shape_x, self.shape_y)
         arcade.draw_text("LEVEL:",
                          LEVEL_TEXT_XY[0], LEVEL_TEXT_XY[1],
-                         (0, 0, 0), TITLE_FONT_SIZE , font_name="Kenney Future")
+                         (0, 0, 0), TITLE_FONT_SIZE, font_name="Kenney Future")
 
         arcade.draw_text(str(self.level),
                          LEVEL_NUM_TEXT_XY[0], LEVEL_NUM_TEXT_XY[1],
-                         (0, 0, 0), TITLE_FONT_SIZE , font_name="Kenney Future")
+                         (0, 0, 0), TITLE_FONT_SIZE, font_name="Kenney Future")
 
         arcade.draw_text("SCORE:",
                          SCORE_TEXT_XY[0], SCORE_TEXT_XY[1],
@@ -530,7 +620,7 @@ class GameView(arcade.View):
                          SCORE_NUM_TEXT_XY[0], SCORE_NUM_TEXT_XY[1],
                          (0, 0, 0), TITLE_FONT_SIZE, font_name="Raleway")
 
-        #self.draw_shapes(self.next_shape, NEXT_SHAPE_X, NEXT_SHAPE_Y)
+        # self.draw_shapes(self.next_shape, NEXT_SHAPE_X, NEXT_SHAPE_Y)
 
     def drop(self):
         """
@@ -730,6 +820,7 @@ class GameView(arcade.View):
             else:
                 self.mute = False
                 self.current_song_index = random.randint(0, len(MUSIC_LIST) - 1)
+                self.volume = 0.25
                 self.play_song()
 
     def advance_song(self):
