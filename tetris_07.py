@@ -67,7 +67,7 @@ COLORS = [(0, 0, 0),
           (255, 255, 0),  # Yellow - Square
           (0, 255, 255),  # light blue (cyan) - I block    #(127, 127, 127)# Grey - background
           (255, 255, 255),  # WHITE - TESTING
-          (0, 0, 10)  # black
+          (255, 255, 255)  # black
           ]
 
 # List containing the different tetrominoes - different numbers for colouring purposes
@@ -492,8 +492,6 @@ class GameOverView(arcade.View):
         self.window.show_view(game_view)
 
 
-
-
 class GameView(arcade.View):
     """
     Main Application class for game
@@ -503,7 +501,22 @@ class GameView(arcade.View):
     def __init__(self):
         """ Initializer class. Code to be ran on launch """
         super().__init__()
-        arcade.set_background_color(arcade.color.DARK_BLUE_GRAY)
+        # Darks
+        arcade.set_background_color(arcade.color.DARK_BLUE_GRAY) # - sample 1
+        #arcade.set_background_color((0, 0, 0)) # - sample 2
+        #arcade.set_background_color((47, 64, 77)) # - sample 3
+        #arcade.set_background_color((64, 22, 22)) # - sample 4
+
+        # Lights
+        #arcade.set_background_color(arcade.color.LIGHT_STEEL_BLUE) # - sample 1
+        #arcade.set_background_color((255, 255, 255)) # - sample 2
+        #arcade.set_background_color((255, 204, 204)) # - sample 3
+        #arcade.set_background_color((204, 243, 255)) # - sample 4
+        #arcade.set_background_color((224, 204, 255)) # - sample 4
+
+        self.dark_background = (0, 0, 0)
+        self.light_background = (255, 255, 255)
+
         # Put all sprite lists here = to "None"
         self.board = None
         self.board_sprite_list = None
@@ -544,6 +557,10 @@ class GameView(arcade.View):
         # Create sprites and sprite lists here
         # Create a list containing the board (bunch of 0's with some 1's)
         self.board = new_board(ROW_COUNT, COL_COUNT, False)
+        if not self.dark_mode:
+            arcade.set_background_color(self.light_background)
+        else:
+            arcade.set_background_color(self.dark_background)
 
         # For each row, and each column in that row, create a sprite and append textures and positions
         # Just a plain board of squares
@@ -571,12 +588,6 @@ class GameView(arcade.View):
             self.volume = 0
         # Play the song
         self.play_song()
-
-
-
-        print("mute" + str(self.mute))
-        print("darkmode" + str(self.dark_mode))
-
 
         self.level = 1
         self.score = 0
