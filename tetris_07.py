@@ -337,10 +337,12 @@ class MenuView(arcade.View):
         self.mute = False
         self.dark_mode = True
 
+        self.background_texture = "resources/menu_view/menu.png"
         self.start_button_texture = "resources/menu_view/buttons/start_button_1.png"
         self.dark_button_texture = "resources/menu_view/buttons/dark_button_1.png"
         self.mute_button_texture = "resources/menu_view/buttons/mute_button_1.png"
 
+        self.background = None
         self.start_button = None
         self.button = None
         self.button_sprites = None
@@ -361,37 +363,44 @@ class MenuView(arcade.View):
         self.button_sprites = arcade.SpriteList()
         self.indicator_sprites = arcade.SpriteList()
 
+        # Menu background
+        self.background = arcade.Sprite(self.background_texture, 1)
+        self.background.center_x = SCREEN_WIDTH / 2
+        self.background.bottom = 0
+        self.background.properties = "background"
+
+
         # Start button
         self.start_button = arcade.Sprite(self.start_button_texture, 0.5)
         self.start_button.center_x = SCREEN_WIDTH / 2
-        self.start_button.center_y = SCREEN_HEIGHT / 2
+        self.start_button.center_y = SCREEN_HEIGHT / 2 + 75
         self.start_button.properties = "start_button"
         self.button_sprites.append(self.start_button)
 
         # Light or dark color mode button
         self.button = arcade.Sprite(self.dark_button_texture, 0.5)
         self.button.center_x = SCREEN_WIDTH / 2
-        self.button.center_y = SCREEN_HEIGHT / 2 - 100
+        self.button.center_y = SCREEN_HEIGHT / 2 - 25
         self.button.properties = "color_button"
         self.button_sprites.append(self.button)
 
         # Mute button
         self.button = arcade.Sprite(self.mute_button_texture, 0.5)
         self.button.center_x = SCREEN_WIDTH / 2
-        self.button.center_y = SCREEN_HEIGHT / 2 - 170
+        self.button.center_y = SCREEN_HEIGHT / 2 - 100
         self.button.properties = "mute_button"
         self.button_sprites.append(self.button)
 
         # indicators
         self.color_button_indicator = arcade.SpriteSolidColor(25, 62, self.color_green)
         self.color_button_indicator.center_x = SCREEN_WIDTH / 2 + 147
-        self.color_button_indicator.center_y = SCREEN_HEIGHT / 2 - 100
+        self.color_button_indicator.center_y = SCREEN_HEIGHT / 2 - 25
         self.color_button_indicator.properties = "color_indicator"
         self.indicator_sprites.append(self.color_button_indicator)
 
         self.mute_button_indicator = arcade.SpriteSolidColor(25, 61, self.color_green)
         self.mute_button_indicator.center_x = SCREEN_WIDTH / 2 + 147
-        self.mute_button_indicator.center_y = SCREEN_HEIGHT / 2 - 170
+        self.mute_button_indicator.center_y = SCREEN_HEIGHT / 2 - 100
         self.mute_button_indicator.properties = "mute_indicator"
         self.indicator_sprites.append(self.mute_button_indicator)
 
@@ -400,11 +409,17 @@ class MenuView(arcade.View):
         arcade.start_render()
         # self.texture.draw_sized(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
         #                         SCREEN_WIDTH, SCREEN_HEIGHT)
+
+        self.background.draw()
         self.button_sprites.draw()
+
+        arcade.set_background_color((255, 255, 255))
 
         # Check if dark mode or mute is enabled, then draw indicator box
         if self.dark_mode:
             self.indicator_sprites[0].draw()
+            arcade.set_background_color((0, 0, 0))
+
         if self.mute:
             self.indicator_sprites[1].draw()
 
@@ -449,8 +464,9 @@ class GameOverView(arcade.View):
         """ This is run once when we switch to this view """
         super().__init__()
 
-        self.texture = arcade.load_texture("resources/game_over_view/IMG_1404.jpg")
+        self.texture = arcade.load_texture("resources/game_over_view/game_over.png")
         self.mute = bool
+        self.score = 0
 
     def on_draw(self):
         """ Draw this view """
@@ -458,6 +474,14 @@ class GameOverView(arcade.View):
         arcade.start_render()
         self.texture.draw_sized(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
                                 SCREEN_WIDTH, SCREEN_HEIGHT)
+        arcade.draw_text("SCORE:",
+                         SCREEN_WIDTH / 2 - 105, SCREEN_HEIGHT - 170,
+                         (247, 147, 30), TITLE_FONT_SIZE + 15, font_name="Neuropol Nova Regular",
+                         align="center")
+
+        arcade.draw_text(str(self.score),
+                         SCREEN_WIDTH / 2 + 55, SCREEN_HEIGHT - 170,
+                         (247, 147, 30), TITLE_FONT_SIZE + 15, font_name="Neuropol Nova Regular")
 
     def on_mouse_press(self, _x, _y, _button, _modifiers):
         """ If the user presses the mouse button, re-start the game. """
@@ -466,6 +490,8 @@ class GameOverView(arcade.View):
         game_view.mute = self.mute
         game_view.setup()
         self.window.show_view(game_view)
+
+
 
 
 class GameView(arcade.View):
@@ -606,19 +632,19 @@ class GameView(arcade.View):
         self.draw_shapes(self.shape, self.shape_x, self.shape_y)
         arcade.draw_text("LEVEL:",
                          LEVEL_TEXT_XY[0], LEVEL_TEXT_XY[1],
-                         (0, 0, 0), TITLE_FONT_SIZE, font_name="Kenney Future")
+                         (247, 147, 30), TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
 
         arcade.draw_text(str(self.level),
                          LEVEL_NUM_TEXT_XY[0], LEVEL_NUM_TEXT_XY[1],
-                         (0, 0, 0), TITLE_FONT_SIZE, font_name="Kenney Future")
+                         (247, 147, 30), TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
 
         arcade.draw_text("SCORE:",
                          SCORE_TEXT_XY[0], SCORE_TEXT_XY[1],
-                         (0, 0, 0), TITLE_FONT_SIZE, font_name="Kenney Future")
+                         (247, 147, 30), TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
 
         arcade.draw_text(str(self.score),
                          SCORE_NUM_TEXT_XY[0], SCORE_NUM_TEXT_XY[1],
-                         (0, 0, 0), TITLE_FONT_SIZE, font_name="Raleway")
+                         (247, 147, 30), TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
 
         # self.draw_shapes(self.next_shape, NEXT_SHAPE_X, NEXT_SHAPE_Y)
 
@@ -758,6 +784,7 @@ class GameView(arcade.View):
         if self.game_over:
             view = GameOverView()
             view.mute = self.mute
+            view.score = self.score
             self.music.stop()
             self.window.show_view(view)
 
