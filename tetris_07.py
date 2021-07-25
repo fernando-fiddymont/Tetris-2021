@@ -322,8 +322,8 @@ def next_board_create(next_board):
                 # Background colors
                 sprite.set_texture(0)
                 # Set center_x and center_y
-                sprite.center_x = (MARGIN + WIDTH) * column + MARGIN + WIDTH + SCREEN_WIDTH - 200
-                sprite.center_y = SCREEN_HEIGHT - (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2 - 300
+                sprite.center_x = (MARGIN + WIDTH) * column + MARGIN + WIDTH + SCREEN_WIDTH - int((4 *(MARGIN + WIDTH) + MARGIN + WIDTH)) -10
+                sprite.center_y = SCREEN_HEIGHT - (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2 - (8*(MARGIN + WIDTH) + MARGIN + WIDTH)
                 next_board_sprite_list.append(sprite)
 
     return next_board_sprite_list
@@ -502,7 +502,7 @@ class GameView(arcade.View):
         """ Initializer class. Code to be ran on launch """
         super().__init__()
         # Darks
-        arcade.set_background_color(arcade.color.DARK_BLUE_GRAY) # - sample 1
+        #arcade.set_background_color(arcade.color.DARK_BLUE_GRAY) # - sample 1
         #arcade.set_background_color((0, 0, 0)) # - sample 2
         #arcade.set_background_color((47, 64, 77)) # - sample 3
         #arcade.set_background_color((64, 22, 22)) # - sample 4
@@ -514,7 +514,7 @@ class GameView(arcade.View):
         #arcade.set_background_color((204, 243, 255)) # - sample 4
         #arcade.set_background_color((224, 204, 255)) # - sample 4
 
-        self.dark_background = (0, 0, 0)
+        self.dark_background = (122, 122, 0)
         self.light_background = (255, 255, 255)
 
         # Put all sprite lists here = to "None"
@@ -639,7 +639,7 @@ class GameView(arcade.View):
         arcade.start_render()
         # Call draw() on all your sprite lists below
         self.board_sprite_list.draw()
-        self.next_board_sprite_list.draw()
+        #self.next_board_sprite_list.draw()
         self.draw_shapes(self.shape, self.shape_x, self.shape_y)
         arcade.draw_text("LEVEL:",
                          LEVEL_TEXT_XY[0], LEVEL_TEXT_XY[1],
@@ -657,7 +657,9 @@ class GameView(arcade.View):
                          SCORE_NUM_TEXT_XY[0], SCORE_NUM_TEXT_XY[1],
                          (247, 147, 30), TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
 
-        # self.draw_shapes(self.next_shape, NEXT_SHAPE_X, NEXT_SHAPE_Y)
+        arcade.draw_rectangle_filled(440 + 17.5, 442, 140 + 5, 105, (0, 0, 0))
+
+        self.draw_shapes(self.next_shape, 11, 10)
 
     def drop(self):
         """
