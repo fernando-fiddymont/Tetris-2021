@@ -285,7 +285,6 @@ def locateLargest(matrix):
     """ Finds the longest length row in matrix and returns it. """
     largest_num = None
     list = []
-
     for count_y, row in enumerate(matrix):
         potential_num = 0
 
