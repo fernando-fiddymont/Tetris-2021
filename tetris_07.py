@@ -58,40 +58,39 @@ MUSIC_LIST = ["resources/my_sounds/background_mixes/ES_Candy - Caponium.mp3",
               "resources/my_sounds/background_mixes/Tetris 99 - Main Theme.mp3"]
 
 # List of colors based on the 8 official Tetris colors - (R,B,G) format.
-COLORS = [(0, 0, 0),
-          (128, 0, 128),  # purple - T block
-          (255, 127, 0),  # Orange - L block
-          (0, 0, 255),  # blue - J block
-          (0, 255, 0),  # green - S block
-          (255, 0, 0),  # red - Z block
-          (255, 255, 0),  # Yellow - Square
-          (0, 255, 255),  # light blue (cyan) - I block    #(127, 127, 127)# Grey - background
-          (255, 255, 255),  # WHITE - TESTING
-          (255, 255, 255)  # black
+COLORS = [(0, 0, 0),  # black - empty squares
+          (128, 0, 128),  # Pimp Purple - baseline
+          (28, 209, 0),  # Lime Green - T block
+          (252, 47, 0),  # Scarlet Red - L block
+          (246, 140, 19),  # Dark Orange - J block
+          (36, 120, 255),  # Blue Crayola - S block
+          (255, 20, 181),  # Shocking Pink - Z block
+          (82, 249, 255),  # Electric Blue - Square
+          (255, 234, 0),  # Middle Yellow - I block
           ]
 
 # List containing the different tetrominoes - different numbers for colouring purposes
 # it is done so we know our center piece is always at for shape in shapes -> shape[1][2]
-SHAPES = [[[0, 1, 0],
-           [1, 1, 1]],
-
-          [[0, 0, 2],
+SHAPES = [[[0, 2, 0],
            [2, 2, 2]],
 
-          [[3, 0, 0],
+          [[0, 0, 3],
            [3, 3, 3]],
 
-          [[0, 4, 4],
-           [4, 4, 0]],
+          [[4, 0, 0],
+           [4, 4, 4]],
 
-          [[5, 5, 0],
-           [0, 5, 5]],
+          [[0, 5, 5],
+           [5, 5, 0]],
 
-          [[0, 6, 6],
+          [[6, 6, 0],
            [0, 6, 6]],
 
+          [[0, 7, 7],
+           [0, 7, 7]],
+
           [[0, 0, 0, 0],
-           [7, 7, 7, 7]]
+           [8, 8, 8, 8]]
           ]
 
 O_OFFSET_DATA = [[0, 0], [0, 1], [-1, 1], [-1, 0]]
@@ -310,25 +309,6 @@ def offset_o(old_rotation, new_rotation):
     return offset
 
 
-def next_board_create(next_board):
-    """Create the smaller grid for our next tile screen"""
-    next_board_sprite_list = arcade.SpriteList()
-    for row in range(len(next_board)):
-        for column in range(len(next_board[0])):
-            if not next_board[row][column]:
-                sprite = arcade.Sprite()
-                for texture in texture_list:
-                    sprite.append_texture(texture)
-                # Background colors
-                sprite.set_texture(0)
-                # Set center_x and center_y
-                sprite.center_x = (MARGIN + WIDTH) * column + MARGIN + WIDTH + SCREEN_WIDTH - int((4 *(MARGIN + WIDTH) + MARGIN + WIDTH)) -10
-                sprite.center_y = SCREEN_HEIGHT - (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2 - (8*(MARGIN + WIDTH) + MARGIN + WIDTH)
-                next_board_sprite_list.append(sprite)
-
-    return next_board_sprite_list
-
-
 class MenuView(arcade.View):
     def __init__(self):
         """ This is run once when we switch to this view """
@@ -407,18 +387,18 @@ class MenuView(arcade.View):
     def on_draw(self):
         """ Draw this view """
         arcade.start_render()
-        # self.texture.draw_sized(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-        #                         SCREEN_WIDTH, SCREEN_HEIGHT)
 
-        self.background.draw()
+        # Set background and color scheme
+        arcade.set_background_color(arcade.color.LIGHT_STEEL_BLUE)
         self.button_sprites.draw()
 
-        arcade.set_background_color((255, 255, 255))
-
-        # Check if dark mode or mute is enabled, then draw indicator box
         if self.dark_mode:
             self.indicator_sprites[0].draw()
-            arcade.set_background_color((0, 0, 0))
+            arcade.set_background_color((47, 64, 77))
+
+        self.background.draw()
+
+        # Check if dark mode or mute is enabled, then draw indicator box
 
         if self.mute:
             self.indicator_sprites[1].draw()
@@ -504,7 +484,7 @@ class GameView(arcade.View):
         # Darks
         #arcade.set_background_color(arcade.color.DARK_BLUE_GRAY) # - sample 1
         #arcade.set_background_color((0, 0, 0)) # - sample 2
-        #arcade.set_background_color((47, 64, 77)) # - sample 3
+        self.dark_background = (47, 64, 77) # - sample 3
         #arcade.set_background_color((64, 22, 22)) # - sample 4
 
         # Lights
@@ -514,8 +494,8 @@ class GameView(arcade.View):
         #arcade.set_background_color((204, 243, 255)) # - sample 4
         #arcade.set_background_color((224, 204, 255)) # - sample 4
 
-        self.dark_background = (122, 122, 0)
-        self.light_background = (255, 255, 255)
+        #self.dark_background = (122, 122, 0)
+        self.light_background = (arcade.color.LIGHT_STEEL_BLUE)
 
         # Put all sprite lists here = to "None"
         self.board = None
@@ -535,6 +515,7 @@ class GameView(arcade.View):
         self.lvl_text = None
         self.score_num_text = None
         self.level_num_text = None
+        self.text_color = None
 
         self.game_over = False
 
@@ -579,7 +560,6 @@ class GameView(arcade.View):
 
         # Create our next board
         self.next_board = new_board(4, 4, True)
-        self.next_board_sprite_list = next_board_create(self.next_board)
 
         # Play music
         # Array index of what to play
@@ -591,6 +571,11 @@ class GameView(arcade.View):
 
         self.level = 1
         self.score = 0
+
+        # Figure out our text color
+        self.text_color = (247, 147, 30)
+        if not self.dark_mode:
+            self.text_color = (47, 64, 77)
 
         self.next_shape = SHAPES[random.randint(0, 6)]
         self.new_shape()
@@ -637,29 +622,47 @@ class GameView(arcade.View):
         # This command should happen before we start drawing. It will clear
         # the screen to the background color, and erase what we drew last frame.
         arcade.start_render()
-        # Call draw() on all your sprite lists below
+
+        # Draw main board and shapes
         self.board_sprite_list.draw()
-        #self.next_board_sprite_list.draw()
         self.draw_shapes(self.shape, self.shape_x, self.shape_y)
+
+        # Draw Level and Score text
         arcade.draw_text("LEVEL:",
                          LEVEL_TEXT_XY[0], LEVEL_TEXT_XY[1],
-                         (247, 147, 30), TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
+                         self.text_color, TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
 
         arcade.draw_text(str(self.level),
                          LEVEL_NUM_TEXT_XY[0], LEVEL_NUM_TEXT_XY[1],
-                         (247, 147, 30), TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
+                         self.text_color, TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
 
         arcade.draw_text("SCORE:",
                          SCORE_TEXT_XY[0], SCORE_TEXT_XY[1],
-                         (247, 147, 30), TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
+                         self.text_color, TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
 
         arcade.draw_text(str(self.score),
                          SCORE_NUM_TEXT_XY[0], SCORE_NUM_TEXT_XY[1],
-                         (247, 147, 30), TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
+                         self.text_color, TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
 
-        arcade.draw_rectangle_filled(440 + 17.5, 442, 140 + 5, 105, (0, 0, 0))
+        # Draw next shape and black background
+        arcade.draw_text("NEXT:",
+                         SCORE_NUM_TEXT_XY[0], 470,
+                         self.text_color, TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
 
-        self.draw_shapes(self.next_shape, 11, 10)
+        arcade.draw_rectangle_filled(457.5, 442 - 35, 145, 105, (0, 0, 0))
+
+        self.draw_shapes(self.next_shape, 11, 11)
+
+        # Draw user control instructions at bottom
+        arcade.draw_text("CONTROLS:\n\n"
+                         "Z  X to rotate.\n\n"
+                         "L  R arrow keys \n"
+                         "to move sideways.\n\n"
+                         "DOWN arrow key \n"
+                         "to drop.\n\n"
+                         "M to mute.",
+                         SCORE_NUM_TEXT_XY[0], 100,
+                         self.text_color, TITLE_FONT_SIZE - 7, font_name="Neuropol Nova Regular")
 
     def drop(self):
         """
@@ -758,12 +761,6 @@ class GameView(arcade.View):
                 i = row * COL_COUNT + column  # i = position of each box within the sprite list
                 self.board_sprite_list[i].set_texture(v)
 
-        for row in range(len(self.next_board)):
-            for column in range(len(self.next_board[0])):
-                v = self.next_board[row][column]  # v = the number at each box location eg 0 or 1
-                i = row * 3 + column  # i = position of each box within the sprite list
-                self.next_board_sprite_list[i].set_texture(v)
-
     def on_update(self, delta_time):
         """
         Logic to keep track of time, drop the stone at set times
@@ -842,12 +839,6 @@ class GameView(arcade.View):
             self.move(-1)
         if key == arcade.key.RIGHT:
             self.move(1)
-        # TESTING
-        if key == arcade.key.R:
-            print("self.rotation: " + str(self.rotation))
-            print("shape_x: " + str(self.shape_x))
-            print("shape_y: " + str(self.shape_y) + "\n")
-
         if key == arcade.key.Z:
             self.rotate_shape(True)
         if key == arcade.key.X:
