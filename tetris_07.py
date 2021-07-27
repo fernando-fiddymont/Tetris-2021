@@ -14,6 +14,14 @@ Link: https://www.youtube.com/watch?v=yIpk5TJ_uaI
 SRS wikis
 Link: https://harddrop.com/wiki/SRS
 Link: https://tetris.wiki/Super_Rotation_System
+Music:
+Tetris 99 - Main theme - "https://www.youtube.com/watch?v=63hoSNvS6Z4"
+All rights of this soundtrack go to the creator "Sega".
+"ES_Candy - Caponium.mp3"
+"ES_Pixel - Josef Falkenskold.mp3"
+"ES_High Score - Eight Bits.mp3"
+Music obtained legally through a subscription to Epidemic sound
+- https://www.epidemicsound.com/
 """
 import arcade
 import random
@@ -464,7 +472,6 @@ class GameOverView(arcade.View):
 
     def on_mouse_press(self, _x, _y, _button, _modifiers):
         """ If the user presses the mouse button, re-start the game. """
-
         game_view = GameView()
         game_view.mute = self.mute
         game_view.setup()
@@ -480,21 +487,9 @@ class GameView(arcade.View):
     def __init__(self):
         """ Initializer class. Code to be ran on launch """
         super().__init__()
-        # Darks
-        #arcade.set_background_color(arcade.color.DARK_BLUE_GRAY) # - sample 1
-        #arcade.set_background_color((0, 0, 0)) # - sample 2
+        # Load background colors
         self.dark_background = (47, 64, 77) # - sample 3
-        #arcade.set_background_color((64, 22, 22)) # - sample 4
-
-        # Lights
-        #arcade.set_background_color(arcade.color.LIGHT_STEEL_BLUE) # - sample 1
-        #arcade.set_background_color((255, 255, 255)) # - sample 2
-        #arcade.set_background_color((255, 204, 204)) # - sample 3
-        #arcade.set_background_color((204, 243, 255)) # - sample 4
-        #arcade.set_background_color((224, 204, 255)) # - sample 4
-
-        #self.dark_background = (122, 122, 0)
-        self.light_background = (arcade.color.LIGHT_STEEL_BLUE)
+        self.light_background = arcade.color.LIGHT_STEEL_BLUE
 
         # Put all sprite lists here = to "None"
         self.board = None
@@ -525,6 +520,7 @@ class GameView(arcade.View):
         self.music = None
         self.volume = 0.25
         self.mute = bool
+        self.clear_sound = arcade.load_sound("resources/my_sounds/ruler_swoop.mp3")
 
         self.dark_mode = bool
 
@@ -687,6 +683,8 @@ class GameView(arcade.View):
                         if 0 not in row:
                             self.board = remove_row(self.board, row_num)
                             self.score += int(200 / self.level)
+
+                            arcade.play_sound(self.clear_sound, 0.5)
                             self.level = check_level(self.level, self.score)
                             break
                     else:
@@ -805,23 +803,17 @@ class GameView(arcade.View):
         if not self.game_over:
             # Set the new x value to current + amount to change
             new_x = self.shape_x + x_value
-            # If it exceeds either boundary - set to boundary
-            length = locateLargest(self.shape)
 
+            # If it exceeds either boundary - set to boundary
             for count_y, y in enumerate(self.shape):
                 for count_x, x in enumerate(y):
                     if x != 0:
                         if get_tile_coordinates_global((count_x, count_y), (new_x, self.shape_y))[0] < 0:
                             new_x = self.shape_x
 
-            # if new_x > COL_COUNT - len(self.shape[0]):
-            #     new_x = COL_COUNT - len(self.shape[0])
             # If not colliding - change position
             if not check_collision(self.board, self.shape, (self.shape_x + x_value, self.shape_y)):
                 self.shape_x = new_x
-
-    def on_mouse_press(self, x: float, y: float, button: int, modifiers: int):
-        print(x, y)
 
     def on_key_press(self, key, key_modifiers):
         """
@@ -865,7 +857,6 @@ class GameView(arcade.View):
         if self.music:
             self.music.stop()
         # Play the next song
-        print(f"Playing {MUSIC_LIST[self.current_song_index]}")
         self.music = arcade.Sound(MUSIC_LIST[self.current_song_index], streaming=True)
         self.current_player = self.music.play(self.volume)
         # Quick delay to prevent accidental skipping
