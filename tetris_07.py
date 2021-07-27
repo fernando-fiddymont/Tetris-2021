@@ -55,8 +55,6 @@ SCORE_NUM_TEXT_XY = (SCREEN_WIDTH - 180, SCREEN_HEIGHT - 230)
 
 TITLE_FONT_SIZE = 25
 
-# NEXT_SHAPE_X = (MARGIN + WIDTH) + MARGIN + WIDTH + SCREEN_WIDTH - 200 + WIDTH
-# NEXT_SHAPE_Y = SCREEN_HEIGHT - (MARGIN + HEIGHT) + MARGIN + HEIGHT // 2 - 300
 NEXT_SHAPE_X = 427
 NEXT_SHAPE_Y = 455
 
@@ -65,7 +63,7 @@ MUSIC_LIST = ["resources/my_sounds/background_mixes/ES_Candy - Caponium.mp3",
               "resources/my_sounds/background_mixes/ES_High Score - Eight Bits.mp3",
               "resources/my_sounds/background_mixes/Tetris 99 - Main Theme.mp3"]
 
-# List of colors based on the 8 official Tetris colors - (R,B,G) format.
+# List of colors based on the 8 custom Tetris colors - (R,B,G) format.
 COLORS = [(0, 0, 0),  # black - empty squares
           (128, 0, 128),  # Pimp Purple - baseline
           (28, 209, 0),  # Lime Green - T block
@@ -202,7 +200,6 @@ def check_level(level, score):
 
 
 # ROTATION CALCULATION FUNCTIONS
-
 
 def calculate_rotation_num(rotate_anticlockwise, rotation_num):
     """
@@ -356,7 +353,6 @@ class MenuView(arcade.View):
         self.background.bottom = 0
         self.background.properties = "background"
 
-
         # Start button
         self.start_button = arcade.Sprite(self.start_button_texture, 0.5)
         self.start_button.center_x = SCREEN_WIDTH / 2
@@ -399,14 +395,14 @@ class MenuView(arcade.View):
         arcade.set_background_color(arcade.color.LIGHT_STEEL_BLUE)
         self.button_sprites.draw()
 
+        # Check if dark mode is enabled, then draw indicator box
         if self.dark_mode:
             self.indicator_sprites[0].draw()
             arcade.set_background_color((47, 64, 77))
 
         self.background.draw()
 
-        # Check if dark mode or mute is enabled, then draw indicator box
-
+        # Check if mute is enabled, then draw indicator box
         if self.mute:
             self.indicator_sprites[1].draw()
 
@@ -418,8 +414,6 @@ class MenuView(arcade.View):
     def on_mouse_press(self, _x, _y, _button, _modifiers):
         """ If the user presses the mouse button, re-start the game. """
         # Track if the user has pressed these buttons
-        mute_button = False
-        color_button = False
         # Get all sprites near by
         hit_list = arcade.get_sprites_at_point((_x, _y), self.button_sprites)
 
@@ -429,13 +423,11 @@ class MenuView(arcade.View):
             if sprite.properties == "color_button":
                 if _button == arcade.MOUSE_BUTTON_LEFT:
                     self.dark_mode = not self.dark_mode
-                    color_button = True
 
             # Mute Button
             elif sprite.properties == "mute_button":
                 if _button == arcade.MOUSE_BUTTON_LEFT:
                     self.mute = not self.mute
-                    mute_button = True
 
             # Start Button
             elif sprite.properties == "start_button":
@@ -451,21 +443,21 @@ class GameOverView(arcade.View):
         """ This is run once when we switch to this view """
         super().__init__()
 
+        # Load menu texture
         self.texture = arcade.load_texture("resources/game_over_view/game_over.png")
         self.mute = bool
         self.score = 0
 
     def on_draw(self):
         """ Draw this view """
-
         arcade.start_render()
+
+        # Display menu texture
         self.texture.draw_sized(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
                                 SCREEN_WIDTH, SCREEN_HEIGHT)
         arcade.draw_text("SCORE:",
                          SCREEN_WIDTH / 2 - 105, SCREEN_HEIGHT - 170,
-                         (247, 147, 30), TITLE_FONT_SIZE + 15, font_name="Neuropol Nova Regular",
-                         align="center")
-
+                         (247, 147, 30), TITLE_FONT_SIZE + 15, font_name="Neuropol Nova Regular")
         arcade.draw_text(str(self.score),
                          SCREEN_WIDTH / 2 + 55, SCREEN_HEIGHT - 170,
                          (247, 147, 30), TITLE_FONT_SIZE + 15, font_name="Neuropol Nova Regular")
@@ -488,15 +480,13 @@ class GameView(arcade.View):
         """ Initializer class. Code to be ran on launch """
         super().__init__()
         # Load background colors
-        self.dark_background = (47, 64, 77) # - sample 3
+        self.dark_background = (47, 64, 77)
         self.light_background = arcade.color.LIGHT_STEEL_BLUE
 
-        # Put all sprite lists here = to "None"
+        # Load our variables
         self.board = None
         self.board_sprite_list = None
-
         self.next_board = None
-        self.next_board_sprite_list = None
 
         self.shape = None
         self.shape_x = 0
@@ -541,7 +531,6 @@ class GameView(arcade.View):
         # For each row, and each column in that row, create a sprite and append textures and positions
         # Just a plain board of squares
         self.board_sprite_list = arcade.SpriteList()
-
         for row in range(len(self.board)):
             for column in range(len(self.board[0])):
                 sprite = arcade.Sprite()
@@ -557,11 +546,10 @@ class GameView(arcade.View):
         self.next_board = new_board(4, 4, True)
 
         # Play music
-        # Array index of what to play
+        # current_song_index is what to play
         self.current_song_index = random.randint(0, len(MUSIC_LIST) - 1)
         if self.mute:
             self.volume = 0
-        # Play the song
         self.play_song()
 
         self.level = 1
@@ -572,12 +560,13 @@ class GameView(arcade.View):
         if not self.dark_mode:
             self.text_color = (47, 64, 77)
 
+        # Load our shapes and update board
         self.next_shape = SHAPES[random.randint(0, 6)]
         self.new_shape()
         self.update_board()
 
     def new_shape(self):
-        """ Randomly select new shape - create at top of screen - TO DO: add collision for game over soon"""
+        """ Randomly select new shape - create at top of screen"""
         self.shape = self.next_shape
         self.next_shape = random.choice(SHAPES)
 
@@ -586,7 +575,7 @@ class GameView(arcade.View):
         self.shape_y = 0
         self.rotation = 0
 
-        # ADD COLLISON CHECKING FOR GAME OVER
+        # Collision checking for game over
         if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
             self.game_over = True
 
@@ -639,13 +628,11 @@ class GameView(arcade.View):
                          SCORE_NUM_TEXT_XY[0], SCORE_NUM_TEXT_XY[1],
                          self.text_color, TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
 
-        # Draw next shape and black background
+        # Draw next shape and black background to display our next shapes
         arcade.draw_text("NEXT:",
                          SCORE_NUM_TEXT_XY[0], 470,
                          self.text_color, TITLE_FONT_SIZE, font_name="Neuropol Nova Regular")
-
         arcade.draw_rectangle_filled(457.5, 442 - 35, 145, 105, (0, 0, 0))
-
         self.draw_shapes(self.next_shape, 11, 11)
 
         # Draw user control instructions at bottom
@@ -700,21 +687,19 @@ class GameView(arcade.View):
         center block, putting them back into the matrix and redrawing it on the board
         """
         if not self.game_over:
-
             # Create an empty matrix to load our rotated tiles into
             new_shape_matrix = [[0, 0, 0, 0],
                                 [0, 0, 0, 0],
                                 [0, 0, 0, 0],
                                 [0, 0, 0, 0]]
-
             # Remember current rotation
             old_rotation = self.rotation
-            # find the new rotation - between 0 and 3
+            # Find the new rotation - between 0 and 3
             new_rotation = calculate_rotation_num(rotate_anticlockwise, self.rotation)
             # Get shape type from center so we can re-color our new shape
             shape_type = self.shape[1][1]
 
-            # Count_x, count_y is the xy coordinates in the matrix
+            # Count_x, count_y is the x,y coordinates in the matrix
             # For each tile in the shape
             for count_y, row in enumerate(self.shape):
                 for count_x, tile in enumerate(row):
@@ -722,14 +707,14 @@ class GameView(arcade.View):
                     if tile:
                         # Find the new x and y coordinates of each tile
                         new_x, new_y = get_rotated_tile((count_x, count_y), (1, 1), rotate_anticlockwise)
-                        # Add newly rotated tile to our matrix as the shape type.
+                        # Add newly rotated tile to our matrix as the shape type
                         new_shape_matrix[new_y][new_x] = shape_type
             # Set the shape to the new matrix and update the board
             self.shape = new_shape_matrix
             self.rotation = new_rotation
 
             # Prevent the O shape from wobbling
-            if shape_type == 6:
+            if shape_type == 7:
                 # Get an offset based on shapes old and new rotation positions
                 shape_x_offset, shape_y_offset = offset_o(old_rotation, self.rotation)
                 self.shape_x += shape_x_offset
@@ -762,6 +747,7 @@ class GameView(arcade.View):
         """
         Logic to keep track of time, drop the stone at set times
         Contains different times for different levels
+        Game-over checking logic
         """
         self.frame_count += 1
 
@@ -803,7 +789,6 @@ class GameView(arcade.View):
         if not self.game_over:
             # Set the new x value to current + amount to change
             new_x = self.shape_x + x_value
-
             # If it exceeds either boundary - set to boundary
             for count_y, y in enumerate(self.shape):
                 for count_x, x in enumerate(y):
@@ -830,12 +815,13 @@ class GameView(arcade.View):
             self.move(-1)
         if key == arcade.key.RIGHT:
             self.move(1)
+        # Rotate shapes clockwise or anti-clockwise
         if key == arcade.key.Z:
             self.rotate_shape(True)
         if key == arcade.key.X:
             self.rotate_shape(False)
+        # Mute
         if key == arcade.key.M:
-            # Mute stuff
             if not self.mute:
                 self.mute = True
                 self.music.stop()
@@ -844,12 +830,6 @@ class GameView(arcade.View):
                 self.current_song_index = random.randint(0, len(MUSIC_LIST) - 1)
                 self.volume = 0.25
                 self.play_song()
-
-    def advance_song(self):
-        """ Advance our pointer to the next song. This does NOT start the song. """
-        self.current_song_index += 1
-        if self.current_song_index >= len(MUSIC_LIST):
-            self.current_song_index = 0
 
     def play_song(self):
         """ Play the song. """
