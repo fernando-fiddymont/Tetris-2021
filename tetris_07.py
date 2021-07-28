@@ -778,7 +778,7 @@ class GameView(arcade.View):
             view = GameOverView()
             view.mute = self.mute
             view.score = self.score
-            self.music.stop()
+            self.music.stop(self.current_player)
             self.window.show_view(view)
 
     def move(self, x_value):
@@ -824,7 +824,7 @@ class GameView(arcade.View):
         if key == arcade.key.M:
             if not self.mute:
                 self.mute = True
-                self.music.stop()
+                self.music.stop(self.current_player)
             else:
                 self.mute = False
                 self.current_song_index = random.randint(0, len(MUSIC_LIST) - 1)
@@ -835,7 +835,7 @@ class GameView(arcade.View):
         """ Play the song. """
         # Stop what is currently playing.
         if self.music:
-            self.music.stop()
+            self.music.stop(self.current_player)
         # Play the next song
         self.music = arcade.Sound(MUSIC_LIST[self.current_song_index], streaming=True)
         self.current_player = self.music.play(self.volume)
