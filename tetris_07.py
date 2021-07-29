@@ -1,5 +1,7 @@
 """
 Python Tetris Game
+Inspired by the classic 'Tetris' game and following
+versions of the same name.
 
 Sources:
 Created using the arcade library
@@ -774,6 +776,11 @@ class GameView(arcade.View):
             if self.frame_count % 5 == 0:
                 self.drop()
 
+        position = self.music.get_stream_position(self.current_player)
+        if position == 0.0:
+            self.advance_song()
+            self.play_song()
+
         if self.game_over:
             view = GameOverView()
             view.mute = self.mute
@@ -830,6 +837,13 @@ class GameView(arcade.View):
                 self.current_song_index = random.randint(0, len(MUSIC_LIST) - 1)
                 self.volume = 0.25
                 self.play_song()
+
+    def advance_song(self):
+        """ Advance our pointer to the next song. This does NOT start the song. """
+
+        self.current_song_index += 1
+        if self.current_song_index >= len(MUSIC_LIST):
+            self.current_song_index = 0
 
     def play_song(self):
         """ Play the song. """
