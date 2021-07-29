@@ -727,7 +727,11 @@ class GameView(arcade.View):
                 for count_x, x in enumerate(y):
                     if x != 0:
                         if get_tile_coordinates_global((count_x, count_y), (self.shape_x, self.shape_y))[0] < 0:
+                            # Check we don't rotate into another block
                             self.shape_x = self.shape_x + 1
+                            if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
+                                self.shape_x = self.shape_x - 1
+                                self.rotate_shape(not rotate_anticlockwise)
 
             # If a collision occurs - rotate shape back the opposite way.
             if check_collision(self.board, self.shape, (self.shape_x, self.shape_y)):
